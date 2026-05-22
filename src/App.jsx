@@ -418,14 +418,14 @@ export default function App() {
                     {/* Portrait Image */}
                     <img 
                       src="/owner.png" 
-                      alt="Dr. K. K. Gupta - Founder & Chief Homoeopathic Consultant" 
+                      alt="Mr. Rahul Kumar - Owner & Proprietor" 
                       className="w-full h-full object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)] transition-transform duration-500 group-hover:scale-105"
                     />
                     
                     {/* Elegant overlay badge */}
                     <div className="absolute bottom-4 left-4 right-4 bg-white/80 backdrop-blur-md border border-[#EAE5DC] rounded-xl p-3 shadow-md text-center z-20">
-                      <span className="block text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">Founder &amp; Chief Consultant</span>
-                      <span className="block text-xs font-bold text-slate-800 mt-0.5">Dr. K. K. Gupta</span>
+                      <span className="block text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">Owner &amp; Proprietor</span>
+                      <span className="block text-xs font-bold text-slate-800 mt-0.5">Mr. Rahul Kumar</span>
                     </div>
 
                   </div>
@@ -438,7 +438,7 @@ export default function App() {
                 
                 <div className="absolute -bottom-4 -left-4 bg-white border border-[#EAE5DC] shadow-md rounded-xl py-2 px-3 flex items-center gap-2 z-20 transition-all duration-500 group-hover:-translate-y-1">
                   <Star className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">30+ Yrs Service</span>
+                  <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">Since 1995</span>
                 </div>
 
               </div>
@@ -450,17 +450,17 @@ export default function App() {
               {/* Badges & Main Title */}
               <div className="space-y-4">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
-                  Meet the Founder
+                  Meet the Owner
                 </div>
                 
                 <div className="space-y-2">
                   <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1E293B] tracking-tight">
-                    Dr. K. K. Gupta
+                    Mr. Rahul Kumar
                   </h2>
                   <p className="text-sm font-extrabold text-[#115E59] tracking-wide uppercase flex items-center gap-2">
-                    <span>DHMS (Homoeopathic Medicine &amp; Surgery)</span>
+                    <span>Owner &amp; Proprietor</span>
                     <span className="w-1.5 h-1.5 rounded-full bg-[#115E59]/40"></span>
-                    <span>Chief Consultant</span>
+                    <span>Kanchan Homoeo Hall</span>
                   </p>
                 </div>
               </div>
@@ -468,48 +468,36 @@ export default function App() {
               {/* Bio Narrative Text */}
               <div className="space-y-4 text-slate-600 text-sm sm:text-base leading-relaxed">
                 <p>
-                  Welcome to <strong className="text-[#1E293B]">Kanchan Homoeo Hall</strong>. For over three decades, my commitment has been to deliver authentic, gentle, and permanent healing through standard classical homoeopathy. We believe that true health is not merely the absence of disease, but a state of harmonious physical and emotional balance.
+                  Welcome to <strong className="text-[#1E293B]">Kanchan Homoeo Hall</strong>. Since 1995, our commitment has been to provide authentic, gentle, and high-quality homoeopathic remedies to the community of Ranchi. We believe in offering access to the finest natural formulations and hosting expert consultation sessions to support your personal wellness journey.
                 </p>
                 <p>
-                  As an AYUSH-registered practitioner, I specialize in clinical diagnostics and root-cause therapy. By identifying and treating the underlying pathology rather than suppressing temporary symptoms, we help your body’s natural vitality restore its own defense mechanisms.
+                  We coordinate closely with experienced consulting doctors who specialize in clinical diagnostics and root-cause homoeopathic therapies. By offering AYUSH-standardized brands alongside dedicated professional consultations, we help you find safe, gentle, and effective pathways to holistic health.
                 </p>
               </div>
 
-              {/* Key Credentials Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                
-                <div className="bg-[#F9F6F0]/80 border border-[#EAE5DC]/60 rounded-xl p-4.5 space-y-1.5 shadow-sm hover:border-[#115E59]/30 transition-colors">
-                  <span className="block text-2xs font-extrabold text-[#115E59] uppercase tracking-wider">Clinical Focus</span>
-                  <p className="text-xs font-bold text-slate-800">Chronic Diseases, Respiratory, Skin &amp; Pediatric Care</p>
+              {/* Legacy Highlight Banner */}
+              <div className="bg-[#F9F6F0]/80 border border-[#EAE5DC]/60 rounded-2xl p-6 shadow-sm hover:border-[#115E59]/30 transition-colors flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#115E59]/10 flex items-center justify-center text-[#115E59] shrink-0 font-extrabold text-sm">
+                  ✨
                 </div>
-
-                <div className="bg-[#F9F6F0]/80 border border-[#EAE5DC]/60 rounded-xl p-4.5 space-y-1.5 shadow-sm hover:border-[#115E59]/30 transition-colors">
-                  <span className="block text-2xs font-extrabold text-[#115E59] uppercase tracking-wider">Practice Ethics</span>
-                  <p className="text-xs font-bold text-slate-800">Pure Dilutions &amp; AYUSH Standardized Pharmacopoeias</p>
+                <div>
+                  <span className="block text-3xs font-extrabold text-[#115E59] uppercase tracking-widest">Established Legacy</span>
+                  <p className="text-sm font-bold text-slate-800 mt-0.5">Been in this field since 1995</p>
                 </div>
-
-                <div className="bg-[#F9F6F0]/80 border border-[#EAE5DC]/60 rounded-xl p-4.5 space-y-1.5 shadow-sm hover:border-[#115E59]/30 transition-colors">
-                  <span className="block text-2xs font-extrabold text-[#115E59] uppercase tracking-wider">Community Trust</span>
-                  <p className="text-xs font-bold text-slate-800">5,000+ Satisfied Consultations Across Ranchi</p>
-                </div>
-
               </div>
 
               {/* Quote Block & Signature */}
               <div className="border-t border-[#EAE5DC]/80 pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                 <blockquote className="text-xs font-semibold italic text-[#115E59] leading-relaxed max-w-md">
-                  "Your body possesses an innate wisdom to heal. Our task is to gently trigger that restoration using precise natural remedies."
+                  "We are dedicated to preserving the integrity of traditional homoeopathy, ensuring that pure remedies and expert consultations are always accessible to our community."
                 </blockquote>
                 
-                {/* Simulated Handwritten Signature */}
+                {/* Elegant Handwritten Style Signature */}
                 <div className="shrink-0 flex flex-col items-end">
-                  {/* Signature graphic/SVG */}
-                  <svg className="w-28 h-10 text-[#115E59] opacity-80" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 25C25 15 35 10 45 18C55 26 50 35 65 20C80 5 85 12 95 15C105 18 115 15 118 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M25 18C28 20 32 30 35 32" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M78 12L85 30" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest -mt-1.5">Dr. K. K. Gupta</span>
+                  <span className="font-serif italic text-xl font-bold text-[#115E59] tracking-wide select-none">
+                    Rahul Kumar
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Mr. Rahul Kumar</span>
                 </div>
               </div>
 
