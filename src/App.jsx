@@ -175,6 +175,7 @@ export default function App() {
               Home
             </button>
             <a href="#credibility" onClick={(e) => smoothScroll(e, 'credibility')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">About</a>
+            <a href="#meet-owner" onClick={(e) => smoothScroll(e, 'meet-owner')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Meet the Owner</a>
             <a href="#book-slot" onClick={(e) => smoothScroll(e, 'book-slot')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Appointments</a>
             <a href="#bulk-orders" onClick={(e) => smoothScroll(e, 'bulk-orders')} className="text-[#5A6561] hover:text-[#0F766E] transition-colors">Wholesale</a>
             <button
@@ -235,6 +236,7 @@ export default function App() {
               Home
             </button>
             <a href="#credibility" onClick={(e) => smoothScroll(e, 'credibility')} className="text-base font-semibold text-[#1A2421]">About</a>
+            <a href="#meet-owner" onClick={(e) => smoothScroll(e, 'meet-owner')} className="text-base font-semibold text-[#1A2421]">Meet the Owner</a>
             <a href="#book-slot" onClick={(e) => smoothScroll(e, 'book-slot')} className="text-base font-semibold text-[#1A2421]">Appointments</a>
             <a href="#bulk-orders" onClick={(e) => smoothScroll(e, 'bulk-orders')} className="text-base font-semibold text-[#1A2421]">Wholesale</a>
             <button
@@ -382,6 +384,135 @@ export default function App() {
                   Consistently recognized for compassionate care, transparent consultation, and premium-grade homoeopathic dilutions sourced from certified natural pharmacopoeias.
                 </p>
               </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 3.5 MEET THE OWNER / FOUNDER SECTION */}
+      <section id="meet-owner" className="py-24 bg-white border-b border-[#EAE5DC] relative z-10 overflow-hidden">
+        {/* Decorative backdrop graphics */}
+        <div className="absolute top-1/2 left-0 w-96 h-96 rounded-full bg-[#115E59]/5 blur-[120px] pointer-events-none -translate-y-1/2"></div>
+        <div className="absolute top-1/4 right-0 w-80 h-80 rounded-full bg-amber-500/5 blur-[100px] pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+            
+            {/* Left Column: Premium Framed Portrait */}
+            <div className="lg:col-span-5 flex justify-center lg:justify-start">
+              <div className="relative group max-w-sm w-full">
+                
+                {/* Glowing Aura Backdrop */}
+                <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-600/10 via-amber-500/5 to-teal-600/10 rounded-3xl blur-2xl opacity-75 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                {/* Gold/Emerald Border Frame */}
+                <div className="relative rounded-2xl overflow-hidden border border-[#EAE5DC] bg-gradient-to-b from-[#FDFBF7] to-[#F5EFE6] p-4.5 shadow-xl shadow-[#EFEAE2] transition-transform duration-500 group-hover:scale-[1.02]">
+                  
+                  {/* Glassmorphic overlay ring */}
+                  <div className="absolute inset-0 border-2 border-white/50 rounded-xl pointer-events-none z-10"></div>
+                  
+                  {/* Photo Container */}
+                  <div className="aspect-square w-full rounded-xl overflow-hidden bg-white/40 border border-[#EAE5DC]/60 relative flex items-end justify-center">
+                    
+                    {/* Portrait Image */}
+                    <img 
+                      src="/owner.png" 
+                      alt="Dr. K. K. Gupta - Founder & Chief Homoeopathic Consultant" 
+                      className="w-full h-full object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)] transition-transform duration-500 group-hover:scale-105"
+                    />
+                    
+                    {/* Elegant overlay badge */}
+                    <div className="absolute bottom-4 left-4 right-4 bg-white/80 backdrop-blur-md border border-[#EAE5DC] rounded-xl p-3 shadow-md text-center z-20">
+                      <span className="block text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">Founder &amp; Chief Consultant</span>
+                      <span className="block text-xs font-bold text-slate-800 mt-0.5">Dr. K. K. Gupta</span>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Decorative floating details */}
+                <div className="absolute -top-3 -right-3 w-12 h-12 rounded-xl bg-white border border-[#EAE5DC] shadow-md flex items-center justify-center text-[#115E59] z-20 transition-transform duration-500 group-hover:rotate-12">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                
+                <div className="absolute -bottom-4 -left-4 bg-white border border-[#EAE5DC] shadow-md rounded-xl py-2 px-3 flex items-center gap-2 z-20 transition-all duration-500 group-hover:-translate-y-1">
+                  <Star className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">30+ Yrs Service</span>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Right Column: Bio Narrative & Philosophy */}
+            <div className="lg:col-span-7 space-y-8">
+              
+              {/* Badges & Main Title */}
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
+                  Meet the Founder
+                </div>
+                
+                <div className="space-y-2">
+                  <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1E293B] tracking-tight">
+                    Dr. K. K. Gupta
+                  </h2>
+                  <p className="text-sm font-extrabold text-[#115E59] tracking-wide uppercase flex items-center gap-2">
+                    <span>DHMS (Homoeopathic Medicine &amp; Surgery)</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#115E59]/40"></span>
+                    <span>Chief Consultant</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Bio Narrative Text */}
+              <div className="space-y-4 text-slate-600 text-sm sm:text-base leading-relaxed">
+                <p>
+                  Welcome to <strong className="text-[#1E293B]">Kanchan Homoeo Hall</strong>. For over three decades, my commitment has been to deliver authentic, gentle, and permanent healing through standard classical homoeopathy. We believe that true health is not merely the absence of disease, but a state of harmonious physical and emotional balance.
+                </p>
+                <p>
+                  As an AYUSH-registered practitioner, I specialize in clinical diagnostics and root-cause therapy. By identifying and treating the underlying pathology rather than suppressing temporary symptoms, we help your body’s natural vitality restore its own defense mechanisms.
+                </p>
+              </div>
+
+              {/* Key Credentials Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                
+                <div className="bg-[#F9F6F0]/80 border border-[#EAE5DC]/60 rounded-xl p-4.5 space-y-1.5 shadow-sm hover:border-[#115E59]/30 transition-colors">
+                  <span className="block text-2xs font-extrabold text-[#115E59] uppercase tracking-wider">Clinical Focus</span>
+                  <p className="text-xs font-bold text-slate-800">Chronic Diseases, Respiratory, Skin &amp; Pediatric Care</p>
+                </div>
+
+                <div className="bg-[#F9F6F0]/80 border border-[#EAE5DC]/60 rounded-xl p-4.5 space-y-1.5 shadow-sm hover:border-[#115E59]/30 transition-colors">
+                  <span className="block text-2xs font-extrabold text-[#115E59] uppercase tracking-wider">Practice Ethics</span>
+                  <p className="text-xs font-bold text-slate-800">Pure Dilutions &amp; AYUSH Standardized Pharmacopoeias</p>
+                </div>
+
+                <div className="bg-[#F9F6F0]/80 border border-[#EAE5DC]/60 rounded-xl p-4.5 space-y-1.5 shadow-sm hover:border-[#115E59]/30 transition-colors">
+                  <span className="block text-2xs font-extrabold text-[#115E59] uppercase tracking-wider">Community Trust</span>
+                  <p className="text-xs font-bold text-slate-800">5,000+ Satisfied Consultations Across Ranchi</p>
+                </div>
+
+              </div>
+
+              {/* Quote Block & Signature */}
+              <div className="border-t border-[#EAE5DC]/80 pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                <blockquote className="text-xs font-semibold italic text-[#115E59] leading-relaxed max-w-md">
+                  "Your body possesses an innate wisdom to heal. Our task is to gently trigger that restoration using precise natural remedies."
+                </blockquote>
+                
+                {/* Simulated Handwritten Signature */}
+                <div className="shrink-0 flex flex-col items-end">
+                  {/* Signature graphic/SVG */}
+                  <svg className="w-28 h-10 text-[#115E59] opacity-80" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 25C25 15 35 10 45 18C55 26 50 35 65 20C80 5 85 12 95 15C105 18 115 15 118 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M25 18C28 20 32 30 35 32" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M78 12L85 30" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest -mt-1.5">Dr. K. K. Gupta</span>
+                </div>
+              </div>
+
             </div>
 
           </div>
