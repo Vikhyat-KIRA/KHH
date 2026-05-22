@@ -4,9 +4,11 @@ import dotenv from 'dotenv';
 import pino from 'pino';
 import qrcode from 'qrcode-terminal';
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import { downloadSessionFromFirebase, uploadSessionToFirebaseDebounced } from './firebaseSync.js';
 
 // Load environment variables
 dotenv.config();
+dotenv.config({ path: '../.env' });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -23,6 +25,13 @@ let connectionStatus = 'connecting';
 async function connectToWhatsApp() {
   console.log('🔄 Starting WhatsApp Socket Connection...');
 
+  // Download active session keys from Firestore first (restores login state if local files were deleted)
+  try {
+    await downloadSessionFromFirebase();
+  } catch (err) {
+    console.error('⚠️ Could not download session from Firebase, proceeding with local files:', err);
+  }
+
   // Set up multi-file state authorization (saves credentials in "auth_session" directory)
   const { state, saveCreds } = await useMultiFileAuthState('auth_session');
 
@@ -35,7 +44,10 @@ async function connectToWhatsApp() {
   });
 
   // Track connection events & credentials updates
-  sock.ev.on('creds.update', saveCreds);
+  sock.ev.on('creds.update', async () => {
+    await saveCreds();
+    uploadSessionToFirebaseDebounced();
+  });
 
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
@@ -72,6 +84,9 @@ async function connectToWhatsApp() {
       console.log('🟢 Status: Listening for secure website booking triggers...');
       console.log('================================================================');
       connectionStatus = 'connected';
+      
+      // Force a cloud backup immediately on connection open to ensure session is stored
+      uploadSessionToFirebaseDebounced();
     }
   });
 }

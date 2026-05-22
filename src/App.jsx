@@ -583,6 +583,19 @@ export default function App() {
 
           <div className="flex items-center gap-6">
             <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="hover:text-[#1A2421] transition-colors">Contact Us</a>
+            <button
+              onClick={() => {
+                localStorage.removeItem('clinic_appointments');
+                localStorage.removeItem('clinic_appointments_seeded');
+                localStorage.removeItem('user_local_bookings');
+                localStorage.removeItem('bulk_orders');
+                window.location.reload();
+              }}
+              className="text-rose-600 hover:text-rose-800 transition-colors font-extrabold uppercase tracking-wider bg-transparent border-0 cursor-pointer p-0 flex items-center gap-1"
+              title="Wipes all localStorage mock appointments and seed caches to start testing from a clean slate"
+            >
+              ⚙️ Reset Demo (Wipe Cache)
+            </button>
           </div>
 
         </div>

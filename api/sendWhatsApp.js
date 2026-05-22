@@ -24,19 +24,11 @@ export default async function handler(req, res) {
     }
 
     // Read credentials securely from server environment
+    const bridgeUrl = process.env.VITE_WHATSAPP_BRIDGE_URL || process.env.WHATSAPP_BRIDGE_URL;
+    const bridgeApiKey = process.env.VITE_WHATSAPP_BRIDGE_API_KEY || process.env.WHATSAPP_BRIDGE_API_KEY;
+
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const accessToken  = process.env.WHATSAPP_ACCESS_TOKEN;
-
-    // If credentials not yet configured, return a mock success so the
-    // booking flow itself is never broken during development/testing.
-    if (!phoneNumberId || !accessToken) {
-      console.warn('⚠️ Meta WhatsApp credentials not configured — mock success returned.');
-      return res.status(200).json({
-        status: 'mock_success',
-        message: 'WhatsApp credentials not set yet. Message was NOT actually sent.',
-        recipient: patient_phone
-      });
-    }
 
     // Normalize phone number to E.164 format (e.g. 9431360455 → 919431360455)
     let cleanPhone = patient_phone.replace(/[^0-9]/g, '');
@@ -66,6 +58,47 @@ export default async function handler(req, res) {
       `Thank you for choosing us for holistic, natural care. We look forward to seeing you! 🌿\n\n` +
       `— Kanchan Homoeo Hall`;
 
+    // 1. Check if the 100% Free Baileys WhatsApp Bridge is configured (priority fallback)
+    if (bridgeUrl) {
+      console.log('🔄 Routing through Free WhatsApp Bridge microservice...');
+      try {
+        const bridgeRes = await fetch(`${bridgeUrl.replace(/\/$/, '')}/send-message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: cleanPhone,
+            message: messageText,
+            apiKey: bridgeApiKey || 'kanchan_secret_key_2026'
+          })
+        });
+
+        const bridgeData = await bridgeRes.json();
+
+        if (bridgeRes.ok) {
+          console.log(`✅ Message successfully routed and sent via free WhatsApp bridge to ${cleanPhone}.`);
+          return res.status(200).json({
+            status: 'success',
+            gateway: 'free_bridge',
+            recipient: cleanPhone
+          });
+        } else {
+          console.warn('⚠️ Free bridge failed to send, falling back:', bridgeData);
+        }
+      } catch (err) {
+        console.error('❌ Failed to connect to WhatsApp bridge service, falling back:', err);
+      }
+    }
+
+    // 2. Fallback to official Meta Cloud API
+    if (!phoneNumberId || !accessToken) {
+      console.warn('⚠️ Meta WhatsApp credentials not configured — mock success returned.');
+      return res.status(200).json({
+        status: 'mock_success',
+        message: 'WhatsApp credentials not set yet. Message was NOT actually sent.',
+        recipient: patient_phone
+      });
+    }
+
     // Call Meta WhatsApp Cloud API
     const apiUrl = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
 
@@ -93,9 +126,10 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`✅ WhatsApp message sent to ${cleanPhone}. Message ID: ${data?.messages?.[0]?.id}`);
+    console.log(`✅ WhatsApp message sent to ${cleanPhone} via Meta Cloud API. Message ID: ${data?.messages?.[0]?.id}`);
     return res.status(200).json({
       status: 'success',
+      gateway: 'meta_cloud',
       messageId: data?.messages?.[0]?.id,
       recipient: cleanPhone
     });
