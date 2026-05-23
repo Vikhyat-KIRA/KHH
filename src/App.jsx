@@ -26,6 +26,46 @@ export default function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [activeView, setActiveView] = useState('main');
 
+  // Hidden /admin-panel SPA routing logic
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path === '/admin-panel' || path.endsWith('/admin-panel')) {
+        setActiveView('admin');
+      } else if (path === '/bookings' || path.endsWith('/bookings')) {
+        setActiveView('bookings');
+      }
+      
+      // Also handle back/forward browser buttons
+      const handlePopState = () => {
+        const p = window.location.pathname;
+        if (p === '/admin-panel' || p.endsWith('/admin-panel')) {
+          setActiveView('admin');
+        } else if (p === '/bookings' || p.endsWith('/bookings')) {
+          setActiveView('bookings');
+        } else {
+          setActiveView('main');
+        }
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, []);
+
+  // Synchronize activeView state to URL bar dynamically using HTML5 History API
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+      if (activeView === 'admin' && !currentPath.endsWith('/admin-panel')) {
+        window.history.pushState({}, '', '/admin-panel');
+      } else if (activeView === 'bookings' && !currentPath.endsWith('/bookings')) {
+        window.history.pushState({}, '', '/bookings');
+      } else if (activeView === 'main' && currentPath !== '/') {
+        window.history.pushState({}, '', '/');
+      }
+    }
+  }, [activeView]);
+
   // Cinematic Intro Loader unmounting logic
   useEffect(() => {
     const introTimer = setTimeout(() => {
@@ -214,17 +254,6 @@ export default function App() {
             >
               My Bookings
             </button>
-            <button
-              onClick={() => {
-                setActiveView('admin');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className={`transition-colors cursor-pointer bg-transparent border-0 font-semibold tracking-wide p-0 ${
-                activeView === 'admin' ? 'text-[#115E59]' : 'text-[#5A6561] hover:text-[#115E59]'
-              }`}
-            >
-              Pharmacist Admin
-            </button>
             <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Location</a>
           </nav>
 
@@ -287,18 +316,6 @@ export default function App() {
               }`}
             >
               My Bookings
-            </button>
-            <button
-              onClick={() => {
-                setActiveView('admin');
-                setMobileMenuOpen(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className={`text-left text-base font-semibold cursor-pointer bg-transparent border-0 p-0 ${
-                activeView === 'admin' ? 'text-[#115E59]' : 'text-[#1A2421]'
-              }`}
-            >
-              Pharmacist Admin
             </button>
             <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-base font-semibold text-[#1A2421]">Location</a>
             

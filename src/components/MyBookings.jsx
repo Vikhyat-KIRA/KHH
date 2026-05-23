@@ -24,6 +24,10 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
   const [adminActionLoadingId, setAdminActionLoadingId] = useState(null);
   const [openOverride, setOpenOverride] = useState(localStorage.getItem('clinic_open_override') || 'auto');
 
+  // Search & Filtering States
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
   const handleToggleOverride = (val) => {
     localStorage.setItem('clinic_open_override', val);
     setOpenOverride(val);
@@ -36,6 +40,72 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
       fetchAdminData();
     }
   }, [initialAdminMode]);
+
+  // Reset filters on tab switch
+  useEffect(() => {
+    setSearchTerm('');
+    setStatusFilter('ALL');
+  }, [adminTab]);
+
+  // CSV Export Engine
+  const handleExportCSV = () => {
+    let headers = [];
+    let rows = [];
+    let filename = '';
+
+    if (adminTab === 'orders') {
+      headers = ['Customer Name', 'Phone', 'Email', 'Address', 'Ordered Remedies', 'Total Price', 'Status', 'Ordered On'];
+      rows = filteredOrders.map(o => [
+        o.customer_name,
+        o.phone,
+        o.email,
+        o.address?.replace(/"/g, '""'),
+        o.medicines_list?.replace(/\n/g, ' | ').replace(/"/g, '""'),
+        o.total_price,
+        o.lead_status || 'Pending',
+        o.created_at ? new Date(o.created_at).toLocaleString('en-IN') : ''
+      ]);
+      filename = `Retail_Orders_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (adminTab === 'appointments') {
+      headers = ['Patient Name', 'Patient Phone', 'Appointment Date', 'Time Slot', 'Status', 'Registered On'];
+      rows = filteredAppointments.map(a => [
+        a.patient_name,
+        a.patient_phone,
+        a.appointment_date,
+        a.time_slot,
+        a.status || (a.cancelled ? 'CANCELLED' : 'Booked'),
+        a.created_at ? new Date(a.created_at).toLocaleString('en-IN') : ''
+      ]);
+      filename = `Consultations_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (adminTab === 'b2b') {
+      headers = ['Representative Name', 'Company Name', 'Phone', 'Email', 'Estimated Quantity', 'Requirements Specifications', 'Submitted On'];
+      rows = filteredB2B.map(q => [
+        q.client_name,
+        q.company_name,
+        q.phone,
+        q.email,
+        q.estimated_quantity,
+        q.requirements_text?.replace(/\n/g, ' | ').replace(/"/g, '""'),
+        q.created_at ? new Date(q.created_at).toLocaleString('en-IN') : ''
+      ]);
+      filename = `Wholesale_Queries_${new Date().toISOString().split('T')[0]}.csv`;
+    }
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(r => r.map(val => `"${(val || '').toString().replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Admin Data Fetcher
   const fetchAdminData = async () => {
@@ -419,6 +489,38 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
     );
   };
 
+  // Filtered Lists for Admin Dashboard
+  const filteredOrders = allOrders.filter(order => {
+    const matchesSearch = 
+      (order.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.phone || '').includes(searchTerm) ||
+      (order.address || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'ALL' || (order.lead_status || 'Pending').toUpperCase() === statusFilter.toUpperCase();
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredAppointments = allAppointments.filter(apt => {
+    const matchesSearch = 
+      (apt.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (apt.patient_phone || '').includes(searchTerm) ||
+      (apt.time_slot || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = 
+      statusFilter === 'ALL' || 
+      (statusFilter === 'CANCELLED' && (apt.status === 'CANCELLED' || apt.cancelled)) ||
+      (statusFilter === 'ACTIVE' && apt.status !== 'CANCELLED' && !apt.cancelled);
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredB2B = allB2BQueries.filter(q => {
+    const matchesSearch = 
+      (q.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (q.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (q.phone || '').includes(searchTerm) ||
+      (q.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (q.requirements_text || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
   // RENDER MAIN COMPONENT WITH SUBTABS
   return (
     <div className="max-w-5xl mx-auto px-6 py-12 space-y-8 text-slate-800 animate-fade-in">
@@ -438,37 +540,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
         </span>
       </div>
 
-      {/* Premium Subtabs Switcher */}
-      <div className="flex bg-[#F9F6F0] p-1.5 rounded-xl border border-[#EAE5DC] max-w-sm mx-auto shadow-sm">
-        <button
-          type="button"
-          onClick={() => {
-            setIsAdminMode(false);
-            setSearchResults(null);
-          }}
-          className={`flex-1 py-2 px-4 rounded-lg text-2xs font-bold tracking-wider uppercase transition-all cursor-pointer text-center ${
-            !isAdminMode
-              ? 'bg-[#115E59] text-white shadow-sm font-extrabold'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          🔍 Patient Lookup
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setIsAdminMode(true);
-            fetchAdminData();
-          }}
-          className={`flex-1 py-2 px-4 rounded-lg text-2xs font-bold tracking-wider uppercase transition-all cursor-pointer text-center ${
-            isAdminMode
-              ? 'bg-[#115E59] text-white shadow-sm font-extrabold'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          🔑 Pharmacist Admin
-        </button>
-      </div>
+
 
       {isAdminMode ? (
         // --- ADMIN PORTAL BODY ---
@@ -564,6 +636,62 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             </button>
           </div>
 
+          {/* Search & Filters Panel */}
+          <div className="bg-[#F9F6F0] border border-[#EAE5DC] rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 max-w-4xl mx-auto items-stretch md:items-center">
+            {/* Search Input */}
+            <div className="flex-1 relative">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
+                <Search className="w-4 h-4" />
+              </span>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={
+                  adminTab === 'orders' ? "Search orders by name, phone, or address..." :
+                  adminTab === 'appointments' ? "Search appointments by patient name or phone..." :
+                  "Search wholesale queries by name, company, email, or remedies..."
+                }
+                className="block w-full pl-10 pr-3 py-2 text-xs bg-white border border-[#EAE5DC] rounded-xl text-slate-900 placeholder-slate-450 focus:outline-none focus:ring-2 focus:ring-[#115E59]/35 transition-all shadow-sm"
+              />
+            </div>
+
+            {/* Status Dropdown Filter (Visible for Orders & Appointments) */}
+            {adminTab !== 'b2b' && (
+              <div className="w-full md:w-48 shrink-0">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="block w-full px-3 py-2 text-xs bg-white border border-[#EAE5DC] rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#115E59]/35 transition-all shadow-sm font-semibold"
+                >
+                  <option value="ALL">📋 Show All Statuses</option>
+                  {adminTab === 'orders' ? (
+                    <>
+                      <option value="PENDING">⏳ Pending Leads</option>
+                      <option value="SHIPPED">🚚 Shipped Orders</option>
+                      <option value="COMPLETED">✅ Completed Orders</option>
+                      <option value="CANCELLED">❌ Cancelled Orders</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="ACTIVE">🟢 Active Bookings</option>
+                      <option value="CANCELLED">🔴 Cancelled Bookings</option>
+                    </>
+                  )}
+                </select>
+              </div>
+            )}
+
+            {/* Export CSV Button */}
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="py-2 px-4.5 bg-white border border-[#EAE5DC] hover:border-[#115E59] hover:text-[#115E59] text-slate-600 rounded-xl text-2xs font-extrabold uppercase tracking-wider transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+            >
+              📥 Export CSV
+            </button>
+          </div>
+
           {/* Loading Spinner */}
           {loadingAdminData ? (
             <div className="py-24 flex flex-col items-center justify-center gap-3">
@@ -574,14 +702,14 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             <div className="space-y-6">
               {adminTab === 'orders' ? (
                 // Tab 1: Orders List
-                allOrders.length === 0 ? (
+                filteredOrders.length === 0 ? (
                   <div className="p-12 bg-white border border-[#EAE5DC] rounded-2xl text-center space-y-1 shadow-sm">
                     <p className="text-sm font-bold text-slate-700">No Retail Orders Logged Yet</p>
                     <p className="text-xs text-slate-400">Newly placed retail orders will appear here automatically.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {allOrders.map((order) => {
+                    {filteredOrders.map((order) => {
                       const isUpdating = adminActionLoadingId === order.id;
                       const status = order.lead_status || 'Pending';
                       
@@ -675,14 +803,14 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                 )
               ) : adminTab === 'appointments' ? (
                 // Tab 2: Consultations List
-                allAppointments.length === 0 ? (
+                filteredAppointments.length === 0 ? (
                   <div className="p-12 bg-white border border-[#EAE5DC] rounded-2xl text-center space-y-1 shadow-sm">
                     <p className="text-sm font-bold text-slate-700">No Patient Appointments Scheduled</p>
                     <p className="text-xs text-slate-400">Newly booked consultation slots will appear here in real-time.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {allAppointments.map((apt) => {
+                    {filteredAppointments.map((apt) => {
                       const isUpdating = adminActionLoadingId === apt.id;
                       const isCancelled = apt.status === 'CANCELLED' || apt.cancelled === true;
                       
@@ -748,14 +876,14 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                 )
               ) : (
                 // Tab 3: B2B Wholesale Queries List
-                allB2BQueries.length === 0 ? (
+                filteredB2B.length === 0 ? (
                   <div className="p-12 bg-white border border-[#EAE5DC] rounded-2xl text-center space-y-1 shadow-sm">
                     <p className="text-sm font-bold text-slate-700">No Wholesale Inquiries Logged Yet</p>
                     <p className="text-xs text-slate-400">Newly submitted B2B distribution queries will appear here automatically.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {allB2BQueries.map((query) => {
+                    {filteredB2B.map((query) => {
                       return (
                         <div key={query.id || `${query.created_at}`} className="bg-white border border-[#EAE5DC] rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left">
                           {/* Top accent bar */}
