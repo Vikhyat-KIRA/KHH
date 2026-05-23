@@ -108,6 +108,36 @@ const mockDb = {
     all.push(newOrder);
     localStorage.setItem('retail_orders', JSON.stringify(all));
     return newOrder;
+  },
+
+  // Retrieves all retail orders
+  getAllRetailOrders: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return JSON.parse(localStorage.getItem('retail_orders') || '[]');
+  },
+
+  // Retrieves all appointments
+  getAllAppointments: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
+  },
+
+  // Updates a retail order's status
+  updateRetailOrderStatus: async (id, status) => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const all = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+    const updated = all.map(ord => ord.id === id ? { ...ord, lead_status: status } : ord);
+    localStorage.setItem('retail_orders', JSON.stringify(updated));
+    return true;
+  },
+
+  // Updates an appointment's status
+  updateAppointmentStatus: async (id, status) => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const all = JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
+    const updated = all.map(apt => apt.id === id ? { ...apt, status: status } : apt);
+    localStorage.setItem('clinic_appointments', JSON.stringify(updated));
+    return true;
   }
 };
 

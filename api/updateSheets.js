@@ -138,6 +138,46 @@ export default async function handler(req, res) {
         data.totalPrice,
         'Pending'
       ]];
+    } else if (type === 'update_order_status') {
+      const searchPhone = (data.phone || '').trim();
+      const searchTimestamp = (data.timestamp || '').trim();
+      const newStatus = (data.status || 'Pending').trim();
+      targetTab = 'Retail_Orders';
+
+      if (!sheetTitles.includes(targetTab)) {
+        return res.status(200).json({ status: 'not_found', message: `Sheet tab ${targetTab} does not exist.` });
+      }
+
+      const readRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: `${targetTab}!A:K`,
+      });
+      const rows = readRes.data.values || [];
+      let matchRowIndex = -1;
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const rowTimestamp = (row[0] || '').trim();
+        const rowPhone = (row[2] || '').trim();
+        
+        if (rowTimestamp === searchTimestamp && rowPhone === searchPhone) {
+          matchRowIndex = i + 1; // 1-indexed Sheets rows
+          break;
+        }
+      }
+
+      if (matchRowIndex === -1) {
+        console.warn('Update Order: no matching row found for', { searchPhone, searchTimestamp });
+        return res.status(200).json({ status: 'not_found', message: 'Order row not found.' });
+      }
+
+      // Update the Status column (K)
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: `${targetTab}!K${matchRowIndex}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [[newStatus]] },
+      });
+      return res.status(200).json({ status: 'success', message: `Order status updated to ${newStatus} in row ${matchRowIndex}.` });
     } else {
       return res.status(400).json({ message: 'Invalid payload type' });
     }
