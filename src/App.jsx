@@ -205,7 +205,8 @@ export default function App() {
       <div className="bg-watermark"></div>
       
       {/* 1. PREMIUM HEADER / NAVIGATION BAR */}
-      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-[#EAE5DC] transition-all duration-300 shadow-sm relative">
+      {activeView !== 'admin' && (
+        <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-[#EAE5DC] transition-all duration-300 shadow-sm relative">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo Brand */}
           <a href="#" className="flex items-center gap-2.5 group">
@@ -340,6 +341,7 @@ export default function App() {
           </div>
         )}
       </header>
+      )}
 
       {activeView === 'bookings' || activeView === 'admin' ? (
         <MyBookings initialAdminMode={activeView === 'admin'} onBackToHome={() => { setActiveView('main'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
