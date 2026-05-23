@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Calendar, Clock, User, Phone, CheckCircle2, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2 } from 'lucide-react';
+import { Search, Calendar, Clock, User, Phone, CheckCircle2, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2, Lock } from 'lucide-react';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 
@@ -24,6 +24,28 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
   const [adminActionLoadingId, setAdminActionLoadingId] = useState(null);
   const [openOverride, setOpenOverride] = useState(localStorage.getItem('clinic_open_override') || 'auto');
 
+  // Secure Password States
+  const [password, setPassword] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('pharmacist_authorized') === 'true';
+    }
+    return false;
+  });
+  const [passwordError, setPasswordError] = useState('');
+
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (password === 'Vikhyat@2012') {
+      setIsAuthenticated(true);
+      sessionStorage.setItem('pharmacist_authorized', 'true');
+      setPasswordError('');
+      fetchAdminData();
+    } else {
+      setPasswordError('Invalid security credentials. Access denied.');
+    }
+  };
+
   // Search & Filtering States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -36,10 +58,10 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
 
   useEffect(() => {
     setIsAdminMode(initialAdminMode);
-    if (initialAdminMode) {
+    if (initialAdminMode && isAuthenticated) {
       fetchAdminData();
     }
-  }, [initialAdminMode]);
+  }, [initialAdminMode, isAuthenticated]);
 
   // Reset filters on tab switch
   useEffect(() => {
@@ -247,6 +269,8 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
     // Stealth passcode check for Clinic Administration mode
     if (formattedSearch.toLowerCase() === 'admin94313') {
       setIsAdminMode(true);
+      setIsAuthenticated(true);
+      sessionStorage.setItem('pharmacist_authorized', 'true');
       fetchAdminData();
       setSearchPhone('');
       return;
@@ -529,22 +553,93 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={onBackToHome}
+          onClick={() => {
+            if (isAdminMode) {
+              sessionStorage.removeItem('pharmacist_authorized');
+              setIsAuthenticated(false);
+            }
+            onBackToHome();
+          }}
           className="inline-flex items-center gap-2 text-[#115E59] hover:text-[#0D4F4A] hover:underline font-bold text-xs uppercase tracking-wider cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Clinic Portal
         </button>
-        <span className="text-2xs font-extrabold uppercase tracking-widest text-[#5A6561] bg-[#F9F6F0] border border-[#EAE5DC] px-3 py-1 rounded-full">
-          {isAdminMode ? 'Pharmacist Logistics Portal' : 'Secure Proof Verification'}
-        </span>
+        <div className="flex items-center gap-3">
+          {isAdminMode && isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.removeItem('pharmacist_authorized');
+                setIsAuthenticated(false);
+              }}
+              className="py-1.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border border-rose-200 rounded-full text-3xs font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-sm flex items-center gap-1"
+            >
+              <Lock className="w-2.5 h-2.5" />
+              Lock Portal
+            </button>
+          )}
+          <span className="text-2xs font-extrabold uppercase tracking-widest text-[#5A6561] bg-[#F9F6F0] border border-[#EAE5DC] px-3 py-1 rounded-full">
+            {isAdminMode ? 'Pharmacist Logistics Portal' : 'Secure Proof Verification'}
+          </span>
+        </div>
       </div>
 
 
 
       {isAdminMode ? (
-        // --- ADMIN PORTAL BODY ---
-        <div className="space-y-8">
+        !isAuthenticated ? (
+          // --- STUNNING SECURE LOGIN CARD ---
+          <div className="max-w-md mx-auto bg-white border border-[#EAE5DC] rounded-2xl p-8 shadow-sm space-y-6 relative overflow-hidden animate-fade-in text-left">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#115E59]"></div>
+            
+            <div className="text-center space-y-2.5">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-teal-50 border border-teal-100 text-[#115E59] mb-1.5 shadow-sm">
+                <Lock className="w-5 h-5" />
+              </div>
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight uppercase">
+                Protected Admin Space
+              </h3>
+              <p className="text-2xs text-slate-400 uppercase tracking-wider font-semibold">
+                Authorization Required for Database Logs
+              </p>
+            </div>
+
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="admin-password" className="block text-3xs font-extrabold text-slate-500 uppercase tracking-widest mb-1.5">
+                  Enter Security Key
+                </label>
+                <input
+                  type="password"
+                  id="admin-password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) setPasswordError('');
+                  }}
+                  placeholder="••••••••••••••"
+                  className="block w-full px-3.5 py-2.5 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-350 focus:outline-none focus:ring-2 focus:ring-[#115E59]/40 focus:border-[#115E59] transition-all shadow-sm font-mono text-center tracking-widest"
+                />
+              </div>
+
+              {passwordError && (
+                <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 text-2xs font-semibold rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full btn-neon-emerald py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
+              >
+                Unlock Dashboard
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="space-y-8">
           {/* Admin Title */}
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight uppercase">
@@ -940,7 +1035,8 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             </div>
           )}
         </div>
-      ) : (
+      )
+    ) : (
         // --- LOOKUP MODE BODY ---
         <div className="space-y-12 animate-fade-in">
           <div className="text-center max-w-2xl mx-auto space-y-3">
