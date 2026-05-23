@@ -29,7 +29,11 @@ export default function App() {
   // Hidden /admin-panel SPA routing logic
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const path = window.location.pathname;
+      const getCleanPath = () => {
+        return window.location.pathname.replace(/\/$/, "");
+      };
+
+      const path = getCleanPath();
       if (path === '/admin-panel' || path.endsWith('/admin-panel')) {
         setActiveView('admin');
       } else if (path === '/bookings' || path.endsWith('/bookings')) {
@@ -38,7 +42,7 @@ export default function App() {
       
       // Also handle back/forward browser buttons
       const handlePopState = () => {
-        const p = window.location.pathname;
+        const p = getCleanPath();
         if (p === '/admin-panel' || p.endsWith('/admin-panel')) {
           setActiveView('admin');
         } else if (p === '/bookings' || p.endsWith('/bookings')) {
@@ -55,12 +59,12 @@ export default function App() {
   // Synchronize activeView state to URL bar dynamically using HTML5 History API
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname;
-      if (activeView === 'admin' && !currentPath.endsWith('/admin-panel')) {
+      const currentPath = window.location.pathname.replace(/\/$/, "");
+      if (activeView === 'admin' && currentPath !== '/admin-panel') {
         window.history.pushState({}, '', '/admin-panel');
-      } else if (activeView === 'bookings' && !currentPath.endsWith('/bookings')) {
+      } else if (activeView === 'bookings' && currentPath !== '/bookings') {
         window.history.pushState({}, '', '/bookings');
-      } else if (activeView === 'main' && currentPath !== '/') {
+      } else if (activeView === 'main' && currentPath !== '') {
         window.history.pushState({}, '', '/');
       }
     }
