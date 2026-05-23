@@ -24,23 +24,25 @@ export default function App() {
   const [isOpenNow, setIsOpenNow] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
-  const [activeView, setActiveView] = useState('main');
+  const [activeView, setActiveView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.replace(/\/$/, "");
+      if (path === '/admin-panel' || path.endsWith('/admin-panel')) {
+        return 'admin';
+      } else if (path === '/bookings' || path.endsWith('/bookings')) {
+        return 'bookings';
+      }
+    }
+    return 'main';
+  });
 
-  // Hidden /admin-panel SPA routing logic
+  // Listen to browser forward/back buttons and sync activeView
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const getCleanPath = () => {
         return window.location.pathname.replace(/\/$/, "");
       };
 
-      const path = getCleanPath();
-      if (path === '/admin-panel' || path.endsWith('/admin-panel')) {
-        setActiveView('admin');
-      } else if (path === '/bookings' || path.endsWith('/bookings')) {
-        setActiveView('bookings');
-      }
-      
-      // Also handle back/forward browser buttons
       const handlePopState = () => {
         const p = getCleanPath();
         if (p === '/admin-panel' || p.endsWith('/admin-panel')) {
