@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Calendar, Clock, User, Phone, CheckCircle2, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2 } from 'lucide-react';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 
-export default function MyBookings({ onBackToHome }) {
+export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
   const [searchPhone, setSearchPhone] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
@@ -15,7 +15,7 @@ export default function MyBookings({ onBackToHome }) {
   const [cancelError, setCancelError] = useState('');
 
   // Clinic Administration Portal States
-  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(initialAdminMode);
   const [adminTab, setAdminTab] = useState('orders'); // 'orders' | 'appointments' | 'b2b'
   const [allOrders, setAllOrders] = useState([]);
   const [allAppointments, setAllAppointments] = useState([]);
@@ -29,6 +29,13 @@ export default function MyBookings({ onBackToHome }) {
     setOpenOverride(val);
     window.dispatchEvent(new Event('clinic-override-updated'));
   };
+
+  useEffect(() => {
+    setIsAdminMode(initialAdminMode);
+    if (initialAdminMode) {
+      fetchAdminData();
+    }
+  }, [initialAdminMode]);
 
   // Admin Data Fetcher
   const fetchAdminData = async () => {

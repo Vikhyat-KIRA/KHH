@@ -214,6 +214,17 @@ export default function App() {
             >
               My Bookings
             </button>
+            <button
+              onClick={() => {
+                setActiveView('admin');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className={`transition-colors cursor-pointer bg-transparent border-0 font-semibold tracking-wide p-0 ${
+                activeView === 'admin' ? 'text-[#115E59]' : 'text-[#5A6561] hover:text-[#115E59]'
+              }`}
+            >
+              Pharmacist Admin
+            </button>
             <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Location</a>
           </nav>
 
@@ -277,6 +288,18 @@ export default function App() {
             >
               My Bookings
             </button>
+            <button
+              onClick={() => {
+                setActiveView('admin');
+                setMobileMenuOpen(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className={`text-left text-base font-semibold cursor-pointer bg-transparent border-0 p-0 ${
+                activeView === 'admin' ? 'text-[#115E59]' : 'text-[#1A2421]'
+              }`}
+            >
+              Pharmacist Admin
+            </button>
             <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-base font-semibold text-[#1A2421]">Location</a>
             
             <div className="border-t border-[#EAE5DC] pt-4 flex flex-col gap-4">
@@ -301,8 +324,8 @@ export default function App() {
         )}
       </header>
 
-      {activeView === 'bookings' ? (
-        <MyBookings onBackToHome={() => { setActiveView('main'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+      {activeView === 'bookings' || activeView === 'admin' ? (
+        <MyBookings initialAdminMode={activeView === 'admin'} onBackToHome={() => { setActiveView('main'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
       ) : (
         <>
           {/* 2. HERO SECTION */}
