@@ -94,6 +94,20 @@ const mockDb = {
     all.push(newOrder);
     localStorage.setItem('bulk_orders', JSON.stringify(all));
     return newOrder;
+  },
+
+  // Adds a retail order
+  addRetailOrder: async (order) => {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    const all = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+    const newOrder = {
+      id: 'mock_retail_' + Math.random().toString(36).substr(2, 9),
+      ...order,
+      created_at: new Date().toISOString()
+    };
+    all.push(newOrder);
+    localStorage.setItem('retail_orders', JSON.stringify(all));
+    return newOrder;
   }
 };
 
