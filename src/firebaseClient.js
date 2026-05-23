@@ -122,6 +122,12 @@ const mockDb = {
     return JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
   },
 
+  // Retrieves all bulk orders (B2B Queries)
+  getAllBulkOrders: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return JSON.parse(localStorage.getItem('bulk_orders') || '[]');
+  },
+
   // Updates a retail order's status
   updateRetailOrderStatus: async (id, status) => {
     await new Promise((resolve) => setTimeout(resolve, 300));

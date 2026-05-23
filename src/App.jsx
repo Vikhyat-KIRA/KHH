@@ -58,6 +58,16 @@ export default function App() {
   // Dynamic Open Status Badge logic — Mon–Sat, 10:30 AM to 8:00 PM IST (Ranchi Time)
   useEffect(() => {
     const checkStatus = () => {
+      // 🚨 Check manual override setting from pharmacist admin portal first!
+      const override = localStorage.getItem('clinic_open_override');
+      if (override === 'open') {
+        setIsOpenNow(true);
+        return;
+      } else if (override === 'closed') {
+        setIsOpenNow(false);
+        return;
+      }
+
       try {
         const now = new Date();
         
@@ -110,7 +120,19 @@ export default function App() {
 
     checkStatus();
     const interval = setInterval(checkStatus, 60000);
-    return () => clearInterval(interval);
+
+    // Listen for manual open status override updates
+    const handleOverrideUpdate = () => {
+      checkStatus();
+    };
+    window.addEventListener('clinic-override-updated', handleOverrideUpdate);
+    window.addEventListener('storage', handleOverrideUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('clinic-override-updated', handleOverrideUpdate);
+      window.removeEventListener('storage', handleOverrideUpdate);
+    };
   }, []);
 
   const smoothScroll = (e, id) => {
