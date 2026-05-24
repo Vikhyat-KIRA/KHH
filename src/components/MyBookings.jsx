@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Search, Calendar, Clock, User, Phone, CheckCircle2, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2, Lock } from 'lucide-react';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
+  const { language, t } = useLanguage();
   const [searchPhone, setSearchPhone] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
@@ -42,7 +44,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
       setPasswordError('');
       fetchAdminData();
     } else {
-      setPasswordError('Invalid security credentials. Access denied.');
+      setPasswordError(language === 'en' ? 'Invalid security credentials. Access denied.' : 'अमान्य सुरक्षा प्रमाण पत्र। पहुंच अस्वीकृत।');
     }
   };
 
@@ -262,7 +264,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
 
     const formattedSearch = searchPhone.trim();
     if (!formattedSearch) {
-      setSearchError('Please enter a phone number to search.');
+      setSearchError(language === 'en' ? 'Please enter a phone number to search.' : 'कृपया खोजने के लिए फोन नंबर दर्ज करें।');
       return;
     }
 
@@ -296,7 +298,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
       }
     } catch (err) {
       console.error('Search query failure:', err);
-      setSearchError('Failed to retrieve bookings. Please verify your connection.');
+      setSearchError(language === 'en' ? 'Failed to retrieve bookings. Please verify your connection.' : 'बुक किए गए स्लॉट प्राप्त करने में विफल। कृपया अपने इंटरनेट कनेक्शन की जांच करें।');
     } finally {
       setSearching(false);
     }
@@ -390,14 +392,16 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
         <div className="flex items-center justify-between border-b border-[#EAE5DC]/60 pb-3">
           <div className={`flex items-center gap-2 ${isCancelled ? 'text-slate-400' : 'text-emerald-700'}`}>
             <Calendar className={`w-4 h-4 shrink-0 ${isCancelled ? 'text-slate-300' : 'text-emerald-600'}`} />
-            <span className={`font-bold text-xs uppercase tracking-wider ${isCancelled ? 'line-through text-slate-400/80' : ''}`}>Appointment Pass</span>
+            <span className={`font-bold text-xs uppercase tracking-wider ${isCancelled ? 'line-through text-slate-400/80' : ''}`}>
+              {language === 'en' ? 'Appointment Pass' : 'अपॉइंटमेंट पर्ची'}
+            </span>
           </div>
           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
             isCancelled
               ? 'bg-slate-100 border-slate-200 text-slate-400 line-through'
               : 'bg-emerald-50 border-emerald-200 text-emerald-700'
           }`}>
-            {booking.status === 'Confirmed' ? 'Confirmed' : 'Booked'}
+            {booking.status === 'Confirmed' ? (language === 'en' ? 'Confirmed' : 'पुष्ट') : (language === 'en' ? 'Booked' : 'बुक किया गया')}
           </span>
         </div>
 
@@ -406,7 +410,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             <div className="flex items-center gap-2.5 text-slate-600">
               <User className={`w-4 h-4 shrink-0 ${isCancelled ? 'text-slate-300' : 'text-slate-400'}`} />
               <div>
-                <span className={`block text-[9px] uppercase tracking-wider font-bold ${isCancelled ? 'line-through text-slate-400/70' : 'text-slate-400'}`}>Patient Name</span>
+                <span className={`block text-[9px] uppercase tracking-wider font-bold ${isCancelled ? 'line-through text-slate-400/70' : 'text-slate-400'}`}>{t('calendar.patient')}</span>
                 <span className={`font-bold ${isCancelled ? 'line-through text-slate-400/80' : 'text-slate-900'}`}>{booking.patient_name}</span>
               </div>
             </div>
@@ -414,7 +418,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             <div className="flex items-center gap-2.5 text-slate-600">
               <Phone className={`w-4 h-4 shrink-0 ${isCancelled ? 'text-slate-300' : 'text-slate-400'}`} />
               <div>
-                <span className={`block text-[9px] uppercase tracking-wider font-bold ${isCancelled ? 'line-through text-slate-400/70' : 'text-slate-400'}`}>Registered Phone</span>
+                <span className={`block text-[9px] uppercase tracking-wider font-bold ${isCancelled ? 'line-through text-slate-400/70' : 'text-slate-400'}`}>{language === 'en' ? 'Registered Phone' : 'पंजीकृत फोन'}</span>
                 <span className={`font-semibold ${isCancelled ? 'line-through text-slate-400/80' : 'text-slate-800'}`}>{booking.patient_phone}</span>
               </div>
             </div>
@@ -424,9 +428,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             <div className="flex items-center gap-2.5 text-slate-600">
               <Calendar className={`w-4 h-4 shrink-0 ${isCancelled ? 'text-slate-300' : 'text-slate-400'}`} />
               <div>
-                <span className={`block text-[9px] uppercase tracking-wider font-bold ${isCancelled ? 'line-through text-slate-400/70' : 'text-slate-400'}`}>Consultation Date</span>
+                <span className={`block text-[9px] uppercase tracking-wider font-bold ${isCancelled ? 'line-through text-slate-400/70' : 'text-slate-400'}`}>{t('calendar.date')}</span>
                 <span className={`font-bold ${isCancelled ? 'line-through text-slate-400/80' : 'text-slate-900'}`}>
-                  {new Date(booking.appointment_date).toLocaleDateString(undefined, {
+                  {new Date(booking.appointment_date).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -439,7 +443,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             <div className="flex items-center gap-2.5 text-slate-600">
               <Clock className={`w-4 h-4 shrink-0 ${isCancelled ? 'text-slate-300' : 'text-slate-400'}`} />
               <div>
-                <span className={`block text-[9px] uppercase tracking-wider font-bold ${isCancelled ? 'line-through text-slate-400/70' : 'text-slate-400'}`}>Reserved Slot</span>
+                <span className={`block text-[9px] uppercase tracking-wider font-bold ${isCancelled ? 'line-through text-slate-400/70' : 'text-slate-400'}`}>{t('calendar.slot')}</span>
                 <span className={`font-extrabold px-2 py-0.5 rounded border ${
                   isCancelled
                     ? 'line-through text-slate-400/80 bg-slate-100 border-slate-200'
@@ -453,7 +457,12 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
         <div className={`bg-slate-50 border border-slate-100 rounded-xl p-3 text-[10px] leading-relaxed font-medium ${
           isCancelled ? 'text-slate-400 line-through' : 'text-slate-500'
         }`}>
-          💡 <strong className={isCancelled ? 'line-through text-slate-400/80' : 'text-slate-600'}>Official Proof:</strong> Present this slip card at the clinic counter near Mahabir Chowk, Ranchi, on your appointment day. No email login or printed copy is required.
+          💡 <strong className={isCancelled ? 'line-through text-slate-400/80' : 'text-slate-600'}>
+            {language === 'en' ? 'Official Proof:' : 'आधिकारिक प्रमाण:'}
+          </strong>{' '}
+          {language === 'en' 
+            ? 'Present this slip card at the clinic counter near Mahabir Chowk, Ranchi, on your appointment day. No email login or printed copy is required.'
+            : 'अपने अपॉइंटमेंट के दिन महावीर चौक, रांची के पास क्लिनिक काउंटर पर यह पर्ची कार्ड प्रस्तुत करें। कोई ईमेल लॉगिन या मुद्रित प्रति की आवश्यकता नहीं है।'}
         </div>
 
         {/* Cancel Section — hidden if already cancelled */}
@@ -470,9 +479,13 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
               <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 space-y-2">
                 <p className="text-xs font-bold text-rose-700 flex items-center gap-1.5">
                   <XCircle className="w-4 h-4" />
-                  Cancel this appointment?
+                  {language === 'en' ? 'Cancel this appointment?' : 'क्या यह अपॉइंटमेंट रद्द करें?'}
                 </p>
-                <p className="text-[10px] text-rose-500">This will free up the slot for others. This cannot be undone.</p>
+                <p className="text-[10px] text-rose-500">
+                  {language === 'en' 
+                    ? 'This will free up the slot for others. This cannot be undone.'
+                    : 'यह दूसरों के लिए स्लॉट खाली कर देगा। इसे वापस नहीं लिया जा सकता।'}
+                </p>
                 <div className="flex gap-2 mt-1">
                   <button
                     type="button"
@@ -481,9 +494,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                     className="flex-1 py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
                   >
                     {isCancelling ? (
-                      <><Loader2 className="w-3 h-3 animate-spin" /> Cancelling...</>
+                      <><Loader2 className="w-3 h-3 animate-spin" /> {language === 'en' ? 'Cancelling...' : 'रद्द किया जा रहा है...'}</>
                     ) : (
-                      <><Trash2 className="w-3 h-3" /> Yes, Cancel</>
+                      <><Trash2 className="w-3 h-3" /> {language === 'en' ? 'Yes, Cancel' : 'हाँ, रद्द करें'}</>
                     )}
                   </button>
                   <button
@@ -492,7 +505,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                     onClick={() => { setConfirmId(null); setCancelError(''); }}
                     className="flex-1 py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
                   >
-                    Keep It
+                    {language === 'en' ? 'Keep It' : 'सुरक्षित रखें'}
                   </button>
                 </div>
               </div>
@@ -504,7 +517,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                 className="w-full py-2 px-3 border border-rose-200 hover:border-rose-400 hover:bg-rose-50 text-rose-500 hover:text-rose-700 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <XCircle className="w-3.5 h-3.5" />
-                Cancel Appointment
+                {language === 'en' ? 'Cancel Appointment' : 'अपॉइंटमेंट रद्द करें'}
               </button>
             )}
           </div>
@@ -556,9 +569,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
         <button
           type="button"
           onClick={onBackToHome}
-          className="absolute top-6 left-6 text-slate-500 hover:text-slate-350 text-3xs font-extrabold uppercase tracking-widest transition-colors cursor-pointer"
+          className="absolute top-6 left-6 text-slate-500 hover:text-slate-350 text-3xs font-extrabold uppercase tracking-widest transition-colors cursor-pointer select-none"
         >
-          ← Return to Clinic
+          {language === 'en' ? '← Return to Clinic' : '← क्लिनिक पर वापस जाएं'}
         </button>
 
         {/* Secure login card */}
@@ -570,17 +583,17 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
               <Lock className="w-5 h-5" />
             </div>
             <h3 className="text-xl font-extrabold text-white tracking-tight uppercase font-display">
-              Protected Admin Space
+              {language === 'en' ? 'Protected Admin Space' : 'सुरक्षित व्यवस्थापक क्षेत्र'}
             </h3>
             <p className="text-2xs text-slate-400 uppercase tracking-wider font-semibold">
-              Authorization Required for Database Logs
+              {language === 'en' ? 'Authorization Required for Database Logs' : 'डेटाबेस लॉग के लिए प्राधिकरण आवश्यक है'}
             </p>
           </div>
 
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
               <label htmlFor="admin-password" className="block text-3xs font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">
-                Enter Security Key
+                {language === 'en' ? 'Enter Security Key' : 'सुरक्षा कुंजी दर्ज करें'}
               </label>
               <input
                 type="password"
@@ -606,7 +619,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
               type="submit"
               className="w-full btn-neon-emerald py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all border-0"
             >
-              Unlock Dashboard
+              {language === 'en' ? 'Unlock Dashboard' : 'डैशबोर्ड अनलॉक करें'}
             </button>
           </form>
         </div>
@@ -628,10 +641,10 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
               </div>
               <div>
                 <span className="font-display font-black text-sm sm:text-base tracking-widest text-white uppercase flex items-center gap-1.5">
-                  KHH <span className="text-teal-400 font-extrabold">PHARMACIST PORTAL</span>
+                  KHH <span className="text-teal-400 font-extrabold">{language === 'en' ? 'PHARMACIST PORTAL' : 'फार्मासिस्ट पोर्टल'}</span>
                 </span>
                 <span className="block text-[8px] font-extrabold uppercase tracking-widest text-slate-400 -mt-0.5">
-                  Logistics &amp; Command Console
+                  {t('portal.adminPortal')}
                 </span>
               </div>
             </div>
@@ -639,13 +652,13 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             {/* Admin Stats & Metrics Bar */}
             <div className="hidden lg:flex items-center gap-4 text-[10px] font-bold text-slate-400">
               <span className="px-3 py-1 bg-slate-800 border border-slate-700/55 rounded-full flex items-center gap-1.5">
-                📦 Orders <strong className="text-teal-450">{allOrders.length}</strong>
+                📦 {language === 'en' ? 'Orders' : 'ऑर्डर'} <strong className="text-teal-450">{allOrders.length}</strong>
               </span>
               <span className="px-3 py-1 bg-slate-800 border border-slate-700/55 rounded-full flex items-center gap-1.5">
-                📅 Consultations <strong className="text-teal-450">{allAppointments.length}</strong>
+                📅 {language === 'en' ? 'Consultations' : 'परामर्श'} <strong className="text-teal-450">{allAppointments.length}</strong>
               </span>
               <span className="px-3 py-1 bg-slate-800 border border-slate-700/55 rounded-full flex items-center gap-1.5">
-                🏢 B2B Inquiries <strong className="text-teal-450">{allB2BQueries.length}</strong>
+                🏢 {language === 'en' ? 'B2B Inquiries' : 'थोक पूछताछ'} <strong className="text-teal-450">{allB2BQueries.length}</strong>
               </span>
             </div>
 
@@ -657,7 +670,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                 </span>
-                <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Firebase Sync</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">
+                  {language === 'en' ? 'Firebase Sync' : 'फायरबेस सिंक'}
+                </span>
               </div>
 
               {/* Lock Session */}
@@ -670,7 +685,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                 className="py-1.5 px-3.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 border border-rose-500/20 rounded-xl text-3xs font-extrabold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1 shadow-sm font-sans"
               >
                 <Lock className="w-2.5 h-2.5" />
-                Lock Portal
+                {language === 'en' ? 'Lock Portal' : 'पोर्टल लॉक करें'}
               </button>
 
               {/* Smaller, Hidden Portal Return Link */}
@@ -683,7 +698,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                 }}
                 className="text-slate-500 hover:text-slate-350 text-3xs font-extrabold uppercase tracking-widest transition-all cursor-pointer border-l border-slate-800 pl-4 h-5 flex items-center font-sans bg-transparent border-t-0 border-r-0 border-b-0"
               >
-                Exit Portal
+                {language === 'en' ? 'Exit Portal' : 'बाहर निकलें'}
               </button>
             </div>
           </div>
@@ -696,10 +711,10 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
             <div className="space-y-1">
               <h2 className="text-2xl font-black text-white tracking-tight uppercase">
-                Systems Dashboard
+                {language === 'en' ? 'Systems Dashboard' : 'सिस्टम डैशबोर्ड'}
               </h2>
               <p className="text-2xs text-slate-400 uppercase tracking-widest font-semibold">
-                Manage operational status, client orders, and wholesale inquiries.
+                {language === 'en' ? 'Manage operational status, client orders, and wholesale inquiries.' : 'परिचालन स्थिति, ग्राहक ऑर्डर और थोक पूछताछ का प्रबंधन करें।'}
               </p>
             </div>
 
@@ -708,8 +723,10 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-teal-400 shrink-0" />
                 <div>
-                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Clinic Override</span>
-                  <span className="block text-[8px] text-slate-500 uppercase tracking-widest -mt-0.5">Force portal open status</span>
+                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('portal.clinicStatusOverride')}</span>
+                  <span className="block text-[8px] text-slate-500 uppercase tracking-widest -mt-0.5">
+                    {language === 'en' ? 'Force Portal Open Status' : 'पोर्टल खुली स्थिति बाध्य करें'}
+                  </span>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -722,7 +739,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                       : 'bg-slate-800 border-slate-700 text-slate-405 hover:text-slate-205'
                   }`}
                 >
-                  ⏱️ Auto
+                  ⏱️ {language === 'en' ? 'Auto' : 'ऑतो'}
                 </button>
                 <button
                   type="button"
@@ -733,7 +750,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                       : 'bg-slate-800 border-slate-700 text-slate-405 hover:text-emerald-405'
                   }`}
                 >
-                  🟢 Open
+                  🟢 {t('portal.forceOpen')}
                 </button>
                 <button
                   type="button"
@@ -744,7 +761,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                       : 'bg-slate-800 border-slate-700 text-slate-450 hover:text-rose-450'
                   }`}
                 >
-                  🔴 Closed
+                  🔴 {t('portal.forceClosed')}
                 </button>
               </div>
             </div>
@@ -760,7 +777,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                   : 'text-slate-400 hover:text-slate-200 bg-transparent'
               }`}
             >
-              📦 Retail Orders ({allOrders.length})
+              📦 {language === 'en' ? 'Retail Orders' : 'खुदरा ऑर्डर'} ({allOrders.length})
             </button>
             <button
               onClick={() => setAdminTab('appointments')}
@@ -770,7 +787,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                   : 'text-slate-400 hover:text-slate-200 bg-transparent'
               }`}
             >
-              📅 Consultations ({allAppointments.length})
+              📅 {language === 'en' ? 'Consultations' : 'परामर्श'} ({allAppointments.length})
             </button>
             <button
               onClick={() => setAdminTab('b2b')}
@@ -780,7 +797,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                   : 'text-slate-400 hover:text-slate-200 bg-transparent'
               }`}
             >
-              🏢 Wholesale Queries ({allB2BQueries.length})
+              🏢 {language === 'en' ? 'Wholesale Queries' : 'थोक पूछताछ'} ({allB2BQueries.length})
             </button>
           </div>
 
@@ -796,9 +813,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={
-                  adminTab === 'orders' ? "Search orders by name, phone, or address..." :
-                  adminTab === 'appointments' ? "Search appointments by patient name or phone..." :
-                  "Search wholesale queries by name, company, email, or remedies..."
+                  adminTab === 'orders' ? (language === 'en' ? "Search orders by name, phone, or address..." : "नाम, फोन या पते से ऑर्डर खोजें...") :
+                  adminTab === 'appointments' ? (language === 'en' ? "Search appointments by patient name or phone..." : "मरीज के नाम या फोन से अपॉइंटमेंट खोजें...") :
+                  (language === 'en' ? "Search wholesale queries by name, company, email, or remedies..." : "नाम, कंपनी, ईमेल या दवाओं से थोक पूछताछ खोजें...")
                 }
                 className="block w-full pl-10 pr-3 py-2 text-xs bg-slate-950 border border-slate-850 rounded-xl text-slate-100 placeholder-slate-550 focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all shadow-inner"
               />
@@ -812,18 +829,18 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="block w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-slate-350 focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all shadow-inner font-bold"
                 >
-                  <option value="ALL" className="bg-slate-900">📋 Show All Statuses</option>
+                  <option value="ALL" className="bg-slate-900">📋 {language === 'en' ? 'Show All Statuses' : 'सभी स्थितियां दिखाएं'}</option>
                   {adminTab === 'orders' ? (
                     <>
-                      <option value="PENDING" className="bg-slate-900">⏳ Pending Leads</option>
-                      <option value="SHIPPED" className="bg-slate-900">🚚 Shipped Orders</option>
-                      <option value="COMPLETED" className="bg-slate-900">✅ Completed Orders</option>
-                      <option value="CANCELLED" className="bg-slate-900">❌ Cancelled Orders</option>
+                      <option value="PENDING" className="bg-slate-900">⏳ {language === 'en' ? 'Pending Leads' : 'लंबित लीड'}</option>
+                      <option value="SHIPPED" className="bg-slate-900">🚚 {language === 'en' ? 'Shipped Orders' : 'भेजे गए ऑर्डर'}</option>
+                      <option value="COMPLETED" className="bg-slate-900">✅ {language === 'en' ? 'Completed Orders' : 'पूर्ण ऑर्डर'}</option>
+                      <option value="CANCELLED" className="bg-slate-900">❌ {language === 'en' ? 'Cancelled Orders' : 'रद्द किए गए ऑर्डर'}</option>
                     </>
                   ) : (
                     <>
-                      <option value="ACTIVE" className="bg-slate-900">🟢 Active Bookings</option>
-                      <option value="CANCELLED" className="bg-slate-900">🔴 Cancelled Bookings</option>
+                      <option value="ACTIVE" className="bg-slate-900">🟢 {language === 'en' ? 'Active Bookings' : 'सक्रिय बुकिंग'}</option>
+                      <option value="CANCELLED" className="bg-slate-900">🔴 {language === 'en' ? 'Cancelled Bookings' : 'रद्द की गई बुकिंग'}</option>
                     </>
                   )}
                 </select>
@@ -836,15 +853,15 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
               onClick={handleExportCSV}
               className="py-2 px-4.5 bg-slate-800 border border-slate-750 hover:border-teal-500 hover:text-teal-400 text-slate-300 rounded-xl text-2xs font-extrabold uppercase tracking-widest transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
             >
-              📥 Export CSV
+              📥 {language === 'en' ? 'Export CSV' : 'सीएसवी निर्यात करें'}
             </button>
           </div>
 
           {/* Database Logs display */}
           {loadingAdminData ? (
             <div className="py-24 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
-              <p className="text-2xs font-extrabold text-slate-500 uppercase tracking-widest">Synchronizing Command Database...</p>
+              <Loader2 className="w-8 h-8 text-teal-450 animate-spin" />
+              <p className="text-2xs font-extrabold text-slate-500 uppercase tracking-widest">{t('portal.loading')}</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -852,8 +869,12 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                 // Orders grid view
                 filteredOrders.length === 0 ? (
                   <div className="p-12 bg-slate-900 border border-slate-800 rounded-2xl text-center space-y-1 shadow-sm">
-                    <p className="text-sm font-bold text-slate-300">No Retail Orders Logged Yet</p>
-                    <p className="text-xs text-slate-500">Newly placed retail orders will appear here automatically.</p>
+                    <p className="text-sm font-bold text-slate-300">
+                      {language === 'en' ? 'No Retail Orders Logged Yet' : 'अभी तक कोई खुदरा ऑर्डर दर्ज नहीं किया गया है'}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {language === 'en' ? 'Newly placed retail orders will appear here automatically.' : 'नए खुदरा ऑर्डर यहां स्वचालित रूप से दिखाई देंगे।'}
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -872,7 +893,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                           <div className="space-y-3.5">
                             <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                               <div>
-                                <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">Customer Name</span>
+                                <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">{t('portal.customer')}</span>
                                 <span className="font-extrabold text-white text-sm">{order.customer_name}</span>
                               </div>
                               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
@@ -881,27 +902,30 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                                 status === 'Cancelled' ? 'bg-rose-950/40 border-rose-900/50 text-rose-400' :
                                 'bg-teal-950/40 border-teal-900/50 text-teal-400 animate-pulse'
                               }`}>
-                                {status}
+                                {status === 'Pending' ? (language === 'en' ? 'Pending' : 'लंबित') :
+                                 status === 'Shipped' ? (language === 'en' ? 'Shipped' : 'भेजा गया') :
+                                 status === 'Completed' ? (language === 'en' ? 'Completed' : 'पूर्ण') : 
+                                 (language === 'en' ? 'Cancelled' : 'रद्द')}
                               </span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3.5 text-2xs leading-relaxed">
                               <div>
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Registered Phone</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{t('portal.phone')}</span>
                                 <a href={`tel:${order.phone}`} className="font-bold text-teal-400 hover:underline">{order.phone}</a>
                               </div>
                               <div>
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Ordered On</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{language === 'en' ? 'Ordered On' : 'ऑर्डर का समय'}</span>
                                 <span className="font-semibold text-slate-350">
-                                  {order.created_at ? new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                                  {order.created_at ? new Date(order.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
                                 </span>
                               </div>
                               <div className="col-span-2">
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Delivery Address</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{t('portal.address')}</span>
                                 <span className="font-semibold text-slate-350">{order.address}</span>
                               </div>
                               <div className="col-span-2">
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Remedies Breakdown</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{language === 'en' ? 'Remedies Breakdown' : 'दवाओं का विवरण'}</span>
                                 <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 font-mono text-[10px] text-slate-300 whitespace-pre-wrap leading-tight mt-1">
                                   {order.medicines_list}
                                 </div>
@@ -911,7 +935,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
 
                           <div className="border-t border-slate-800 pt-4 mt-2 space-y-3">
                             <div className="flex justify-between items-center text-xs font-bold text-slate-350">
-                              <span>Total Price:</span>
+                              <span>{language === 'en' ? 'Total Price:' : 'कुल मूल्य:'}</span>
                               <span className="text-teal-400 text-sm">₹{order.total_price}</span>
                             </div>
                             
@@ -922,7 +946,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                                 onClick={() => handleUpdateOrderStatus(order, 'Shipped')}
                                 className="flex-1 py-1.5 px-2 bg-amber-950/20 hover:bg-amber-950/40 text-amber-405 border border-amber-900/30 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
                               >
-                                🚚 Ship
+                                🚚 {language === 'en' ? 'Ship' : 'भेजें'}
                               </button>
                               <button
                                 type="button"
@@ -930,7 +954,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                                 onClick={() => handleUpdateOrderStatus(order, 'Completed')}
                                 className="flex-1 py-1.5 px-2 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-455 border border-emerald-900/30 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
                               >
-                                ✅ Complete
+                                ✅ {language === 'en' ? 'Complete' : 'पूरा करें'}
                               </button>
                               <button
                                 type="button"
@@ -938,7 +962,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                                 onClick={() => handleUpdateOrderStatus(order, 'Cancelled')}
                                 className="flex-1 py-1.5 px-2 bg-rose-950/20 hover:bg-rose-950/40 text-rose-455 border border-rose-900/30 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
                               >
-                                ❌ Cancel
+                                ❌ {language === 'en' ? 'Cancel' : 'रद्द करें'}
                               </button>
                             </div>
                           </div>
@@ -951,8 +975,12 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                 // Consultations grid view
                 filteredAppointments.length === 0 ? (
                   <div className="p-12 bg-slate-900 border border-slate-800 rounded-2xl text-center space-y-1 shadow-sm">
-                    <p className="text-sm font-bold text-slate-300">No Patient Appointments Scheduled</p>
-                    <p className="text-xs text-slate-500">Newly booked consultation slots will appear here in real-time.</p>
+                    <p className="text-sm font-bold text-slate-300">
+                      {language === 'en' ? 'No Patient Appointments Scheduled' : 'कोई मरीज अपॉइंटमेंट निर्धारित नहीं है'}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {language === 'en' ? 'Newly booked consultation slots will appear here in real-time.' : 'नए बुक किए गए परामर्श स्लॉट यहां रीयल-टाइम में दिखाई देंगे।'}
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -969,33 +997,33 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                           <div className="space-y-3.5">
                             <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                               <div>
-                                <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">Patient Name</span>
+                                <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">{t('portal.patient')}</span>
                                 <span className="font-extrabold text-white text-sm">{apt.patient_name}</span>
                               </div>
                               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                                 isCancelled ? 'bg-rose-950/40 border-rose-900/50 text-rose-400' : 'bg-teal-950/40 border-teal-900/50 text-teal-400'
                               }`}>
-                                {isCancelled ? 'Cancelled' : 'Active'}
+                                {isCancelled ? (language === 'en' ? 'Cancelled' : 'रद्द') : (language === 'en' ? 'Active' : 'सक्रिय')}
                               </span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3.5 text-2xs leading-relaxed">
                               <div>
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Contact Phone</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{language === 'en' ? 'Contact Phone' : 'संपर्क फोन'}</span>
                                 <a href={`tel:${apt.patient_phone}`} className="font-bold text-teal-400 hover:underline">{apt.patient_phone}</a>
                               </div>
                               <div>
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Consultation Date</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{t('portal.date')}</span>
                                 <span className="font-bold text-slate-300">{apt.appointment_date}</span>
                               </div>
                               <div>
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Time Slot</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{t('portal.slot')}</span>
                                 <span className="font-extrabold text-teal-450 bg-teal-950/50 px-2 py-0.5 rounded border border-teal-900/50">{apt.time_slot}</span>
                               </div>
                               <div>
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Registered On</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{language === 'en' ? 'Registered On' : 'पंजीकरण का समय'}</span>
                                 <span className="font-semibold text-slate-400">
-                                  {apt.created_at ? new Date(apt.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                                  {apt.created_at ? new Date(apt.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
                                 </span>
                               </div>
                             </div>
@@ -1007,9 +1035,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                                 type="button"
                                 disabled={isUpdating}
                                 onClick={() => handleUpdateAppointmentStatus(apt, 'CANCELLED')}
-                                className="w-full py-2 px-3 border border-rose-900/40 hover:bg-rose-950/20 text-rose-400 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                className="w-full py-2 px-3 border border-rose-900/40 hover:bg-rose-950/20 text-rose-400 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 select-none"
                               >
-                                ❌ Cancel Appointment Slot
+                                ❌ {language === 'en' ? 'Cancel Appointment Slot' : 'अपॉइंटमेंट स्लॉट रद्द करें'}
                               </button>
                             </div>
                           )}
@@ -1022,8 +1050,12 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                 // Wholesale queries
                 filteredB2B.length === 0 ? (
                   <div className="p-12 bg-slate-900 border border-slate-800 rounded-2xl text-center space-y-1 shadow-sm">
-                    <p className="text-sm font-bold text-slate-300">No Wholesale Inquiries Logged Yet</p>
-                    <p className="text-xs text-slate-500">Newly submitted B2B distribution queries will appear here automatically.</p>
+                    <p className="text-sm font-bold text-slate-300">
+                      {language === 'en' ? 'No Wholesale Inquiries Logged Yet' : 'अभी तक कोई थोक पूछताछ दर्ज नहीं की गई है'}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {language === 'en' ? 'Newly submitted B2B distribution queries will appear here automatically.' : 'नए थोक अनुरोध यहां स्वचालित रूप से दिखाई देंगे।'}
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1035,39 +1067,43 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                           <div className="space-y-3.5">
                             <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                               <div>
-                                <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">Representative Name</span>
+                                <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">
+                                  {language === 'en' ? 'Representative Name' : 'प्रतिनिधि का नाम'}
+                                </span>
                                 <span className="font-extrabold text-white text-sm">{query.client_name}</span>
                               </div>
                               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-teal-950/40 border-teal-900/50 text-teal-400">
-                                B2B Inquiry
+                                {language === 'en' ? 'B2B Inquiry' : 'थोक पूछताछ'}
                               </span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3.5 text-2xs leading-relaxed">
                               <div>
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Company Name</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{t('portal.company')}</span>
                                 <span className="font-bold text-slate-300">{query.company_name}</span>
                               </div>
                               <div>
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Submitted On</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{language === 'en' ? 'Submitted On' : 'प्रस्तुत करने का समय'}</span>
                                 <span className="font-semibold text-slate-400">
-                                  {query.created_at ? new Date(query.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                                  {query.created_at ? new Date(query.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
                                 </span>
                               </div>
                               <div>
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Contact Phone</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{t('portal.phone')}</span>
                                 <a href={`tel:${query.phone}`} className="font-bold text-teal-400 hover:underline">{query.phone}</a>
                               </div>
                               <div>
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Contact Email</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{language === 'en' ? 'Contact Email' : 'संपर्क ईमेल'}</span>
                                 <a href={`mailto:${query.email}`} className="font-bold text-teal-400 hover:underline break-all">{query.email}</a>
                               </div>
                               <div className="col-span-2">
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Estimated Required Volume</span>
-                                <span className="font-extrabold text-slate-100 bg-amber-950/40 px-2.5 py-0.5 rounded border border-amber-900/30 text-[10px] inline-block mt-0.5">{query.estimated_quantity} Units</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{language === 'en' ? 'Estimated Required Volume' : 'अनुमानित आवश्यक मात्रा'}</span>
+                                <span className="font-extrabold text-slate-100 bg-amber-950/40 px-2.5 py-0.5 rounded border border-amber-900/30 text-[10px] inline-block mt-0.5">
+                                  {query.estimated_quantity} {language === 'en' ? 'Units' : 'यूनिट'}
+                                </span>
                               </div>
                               <div className="col-span-2">
-                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Remedy Requirements</span>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{t('portal.details')}</span>
                                 <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 font-mono text-[10px] text-slate-300 whitespace-pre-wrap leading-tight mt-1">
                                   {query.requirements_text}
                                 </div>
@@ -1097,22 +1133,22 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
         <button
           type="button"
           onClick={onBackToHome}
-          className="inline-flex items-center gap-2 text-[#115E59] hover:text-[#0D4F4A] hover:underline font-bold text-xs uppercase tracking-wider cursor-pointer"
+          className="inline-flex items-center gap-2 text-[#115E59] hover:text-[#0D4F4A] hover:underline font-bold text-xs uppercase tracking-wider cursor-pointer font-sans border-0 bg-transparent"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Clinic Portal
+          {t('bookings.backBtn')}
         </button>
         <span className="text-2xs font-extrabold uppercase tracking-widest text-[#5A6561] bg-[#F9F6F0] border border-[#EAE5DC] px-3 py-1 rounded-full">
-          Secure Proof Verification
+          {language === 'en' ? 'Secure Proof Verification' : 'सुरक्षित प्रमाण सत्यापन'}
         </span>
       </div>
 
       {/* Lookup Mode Body */}
       <div className="space-y-12 animate-fade-in">
         <div className="text-center max-w-2xl mx-auto space-y-3">
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">My Active Appointments</h2>
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('bookings.title')}</h2>
           <p className="text-sm text-slate-500 leading-relaxed">
-            Look up your bookings by phone number to view proof or cancel your appointment.
+            {t('bookings.desc')}
           </p>
         </div>
 
@@ -1123,15 +1159,15 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
           <div className="space-y-1">
             <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-widest flex items-center gap-2">
               <Search className="w-4 h-4 text-[#115E59]" />
-              Phone Number Lookup
+              {t('bookings.searchTitle')}
             </h3>
-            <p className="text-2xs text-slate-400">Enter your registered phone number to find and manage your appointments.</p>
+            <p className="text-2xs text-slate-400">{t('bookings.searchDesc')}</p>
           </div>
 
           <form onSubmit={handlePhoneSearch} className="space-y-4">
             <div>
               <label htmlFor="lookup-phone" className="block text-3xs font-extrabold text-slate-500 uppercase tracking-widest mb-1.5">
-                Registered Phone Number
+                {t('bookings.enterPhone')}
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-450">
@@ -1161,12 +1197,12 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             <button
               type="submit"
               disabled={searching}
-              className="w-full btn-neon-emerald py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full btn-neon-emerald py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed border-0"
             >
               {searching ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />Searching Records...</>
+                <><Loader2 className="w-4 h-4 animate-spin" />{t('bookings.searching')}</>
               ) : (
-                <><Search className="w-4 h-4" />Find My Appointments</>
+                <><Search className="w-4 h-4" />{t('bookings.searchBtn')}</>
               )}
             </button>
           </form>
@@ -1176,13 +1212,15 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             <div className="pt-4 border-t border-slate-100 space-y-4">
               <h4 className="text-2xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                {searchResults.length === 0 ? 'No appointments found' : `${searchResults.length} appointment${searchResults.length > 1 ? 's' : ''} found`}
+                {searchResults.length === 0 
+                  ? (language === 'en' ? 'No appointments found' : 'कोई अपॉइंटमेंट नहीं मिला') 
+                  : t('bookings.foundBookings', { count: searchResults.length })}
               </h4>
 
               {searchResults.length === 0 ? (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-center space-y-1">
-                  <p className="text-xs font-bold text-slate-700">No Appointments Found</p>
-                  <p className="text-3xs text-slate-400">Verify the phone number or try booking a new slot.</p>
+                  <p className="text-xs font-bold text-slate-700">{language === 'en' ? 'No Appointments Found' : 'कोई अपॉइंटमेंट नहीं मिला'}</p>
+                  <p className="text-3xs text-slate-400">{t('bookings.tryAnother')}</p>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">

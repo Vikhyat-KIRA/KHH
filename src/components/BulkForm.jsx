@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { Building2, User, Mail, Phone, PackageOpen, ClipboardEdit, Send, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, addDoc } from 'firebase/firestore';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function BulkForm() {
+  const { language, t } = useLanguage();
+
   // Input fields state
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
@@ -20,25 +23,18 @@ export default function BulkForm() {
 
   const validate = () => {
     const errors = {};
-    if (!name.trim()) errors.name = 'Full name is required.';
-    if (!company.trim()) errors.company = 'Organization / clinic name is required.';
+    if (!name.trim()) errors.name = t('forms.valName');
+    if (!company.trim()) errors.company = t('bulkForm.valClinicName');
     if (!email.trim()) {
-      errors.email = 'Email address is required.';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = 'Please provide a valid business email address.';
+      errors.email = t('bulkForm.valLicense'); // actually lets keep standard message
+      errors.email = language === 'en' ? 'Drug license number is required for trade rates.' : 'व्यापार दरों के लिए ड्रग लाइसेंस आवश्यक है।';
     }
-    if (!phone.trim()) errors.phone = 'Contact phone number is required.';
+    if (!phone.trim()) errors.phone = t('forms.valPhone');
     if (!quantity.trim()) {
-      errors.quantity = 'Estimated quantity is required.';
-    } else if (isNaN(Number(quantity)) || Number(quantity) <= 0) {
-      errors.quantity = 'Quantity must be a positive number.';
-    } else if (Number(quantity) < 50) {
-      errors.quantity = 'Minimum order quantity is 50 units for wholesale medical batches.';
+      errors.quantity = language === 'en' ? 'Primary inquiry type is required.' : 'प्राथमिक पूछताछ प्रकार आवश्यक है।';
     }
     if (!requirements.trim()) {
-      errors.requirements = 'Please describe your bulk medicine requirements.';
-    } else if (requirements.trim().length < 15) {
-      errors.requirements = 'Please elaborate further (at least 15 characters).';
+      errors.requirements = t('bulkForm.valDetails');
     }
 
     setValidationErrors(errors);
@@ -57,9 +53,9 @@ export default function BulkForm() {
     const payload = {
       client_name: name.trim(),
       company_name: company.trim(),
-      email: email.trim().toLowerCase(),
+      email: email.trim().toUpperCase(), // licenses usually uppercase
       phone: phone.trim(),
-      estimated_quantity: Number(quantity),
+      estimated_quantity: quantity.trim(),
       requirements_text: requirements.trim(),
       lead_status: 'New'
     };
@@ -74,7 +70,7 @@ export default function BulkForm() {
         await mockDb.addBulkOrder(payload);
       }
 
-      // Sync with Google Sheets — fire-and-forget (non-blocking)
+      // Sync with Google Sheets — fire-and-forget
       fetch('/api/updateSheets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,7 +97,7 @@ export default function BulkForm() {
       setValidationErrors({});
     } catch (err) {
       console.error('B2B bulk order error:', err);
-      setError('An unexpected error occurred. Please review your details or retry.');
+      setError(t('forms.valUnexpected'));
     } finally {
       setSubmitting(false);
     }
@@ -120,13 +116,13 @@ export default function BulkForm() {
         <div className="lg:col-span-4 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-[#0F766E] text-xs font-semibold tracking-wider uppercase">
-              Institutional Supply &amp; Bulk Orders
+              {t('bulk.badge')}
             </div>
             <h3 className="text-2xl md:text-3xl font-extrabold text-[#1E293B] tracking-tight">
-              Bulk Medicine Distribution
+              {t('bulkForm.formTitle')}
             </h3>
             <p className="text-sm text-[#64748B] leading-relaxed">
-              Inquire for Bulk Medicine Distribution, Corporate Healthcare Supplies, or Specialized Clinic Batch Requirements. We supply certified homoeopathic dilutions, mother tinctures, bio-chemic tablets, and custom remedy kits in institutional volumes.
+              {t('bulkForm.formDesc')}
             </p>
           </div>
 
@@ -136,8 +132,8 @@ export default function BulkForm() {
                 🚀
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">Fast Response</h4>
-                <p className="text-2xs text-[#64748B]">Custom wholesale quotations within 24 hours.</p>
+                <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">{language === 'en' ? 'Fast Response' : 'त्वरित प्रतिक्रिया'}</h4>
+                <p className="text-2xs text-[#64748B]">{language === 'en' ? 'Custom wholesale quotations within 24 hours.' : '24 घंटे के भीतर थोक मूल्य उद्धरण।'}</p>
               </div>
             </div>
 
@@ -146,8 +142,8 @@ export default function BulkForm() {
                 📦
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">MOQ: 50+ Units</h4>
-                <p className="text-2xs text-[#64748B]">Tiered discounts for clinics, hospitals &amp; pharmacies.</p>
+                <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">{language === 'en' ? 'Institutional Trade Rates' : 'संस्थागत व्यापार दरें'}</h4>
+                <p className="text-2xs text-[#64748B]">{language === 'en' ? 'Tiered discounts for clinics, hospitals & pharmacies.' : 'क्लीनिकों, अस्पतालों और फार्मेसियों के लिए श्रेणीबद्ध छूट।'}</p>
               </div>
             </div>
 
@@ -156,8 +152,8 @@ export default function BulkForm() {
                 🌿
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">GMP Certified</h4>
-                <p className="text-2xs text-[#64748B]">All remedies sourced from AYUSH-approved manufacturers.</p>
+                <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">{t('credibility.certTitle')}</h4>
+                <p className="text-2xs text-[#64748B]">{language === 'en' ? 'All remedies sourced from AYUSH-approved manufacturers.' : 'सभी दवाएं आयुष-अनुमोदित निर्माताओं से प्राप्त की जाती हैं।'}</p>
               </div>
             </div>
           </div>
@@ -169,8 +165,8 @@ export default function BulkForm() {
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-start gap-3 animate-fade-in">
               <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-emerald-600" />
               <div>
-                <h4 className="text-sm font-bold">Wholesale Inquiry Received</h4>
-                <p className="text-xs text-[#64748B] mt-0.5">Your bulk medicine distribution request has been registered. A representative from Kanchan Homoeo Hall will contact you within 24 hours.</p>
+                <h4 className="text-sm font-bold">{t('bulkForm.successTitle')}</h4>
+                <p className="text-xs text-[#64748B] mt-0.5">{t('bulkForm.successDesc')}</p>
               </div>
             </div>
           )}
@@ -179,7 +175,7 @@ export default function BulkForm() {
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />
               <div>
-                <h4 className="text-sm font-bold">Submission Error</h4>
+                <h4 className="text-sm font-bold">{t('forms.errorTitle')}</h4>
                 <p className="text-xs text-[#64748B] mt-0.5">{error}</p>
               </div>
             </div>
@@ -189,7 +185,7 @@ export default function BulkForm() {
             {/* Full Name */}
             <div>
               <label htmlFor="bulk-name" className="block text-2xs font-bold text-[#64748B] uppercase tracking-widest mb-1.5">
-                Full Representative Name
+                {language === 'en' ? 'Representative Full Name' : 'प्रतिनिधि का पूरा नाम'}
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
@@ -215,7 +211,7 @@ export default function BulkForm() {
             {/* Organization / Clinic Name */}
             <div>
               <label htmlFor="bulk-company" className="block text-2xs font-bold text-[#64748B] uppercase tracking-widest mb-1.5">
-                Organization / Clinic Name
+                {t('bulkForm.clinicName')}
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
@@ -229,7 +225,7 @@ export default function BulkForm() {
                     setCompany(e.target.value);
                     if (validationErrors.company) setValidationErrors(p => ({ ...p, company: '' }));
                   }}
-                  placeholder="e.g. Ranchi Wellness Clinic"
+                  placeholder={t('bulkForm.clinicPlaceholder')}
                   className={inputClasses}
                 />
               </div>
@@ -238,24 +234,24 @@ export default function BulkForm() {
               )}
             </div>
 
-            {/* Email Address */}
+            {/* Drug License Number */}
             <div>
               <label htmlFor="bulk-email" className="block text-2xs font-bold text-[#64748B] uppercase tracking-widest mb-1.5">
-                Business Email Address
+                {t('bulkForm.license')}
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
-                  <Mail className="w-4 h-4" />
+                  <Building2 className="w-4 h-4" />
                 </span>
                 <input
-                  type="email"
+                  type="text"
                   id="bulk-email"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (validationErrors.email) setValidationErrors(p => ({ ...p, email: '' }));
                   }}
-                  placeholder="e.g. orders@yourclinic.com"
+                  placeholder={t('bulkForm.licensePlaceholder')}
                   className={inputClasses}
                 />
               </div>
@@ -267,7 +263,7 @@ export default function BulkForm() {
             {/* Phone Number */}
             <div>
               <label htmlFor="bulk-phone" className="block text-2xs font-bold text-[#64748B] uppercase tracking-widest mb-1.5">
-                Contact Phone
+                {t('forms.phone')}
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
@@ -281,7 +277,7 @@ export default function BulkForm() {
                     setPhone(e.target.value);
                     if (validationErrors.phone) setValidationErrors(p => ({ ...p, phone: '' }));
                   }}
-                  placeholder="e.g. 94313 60455"
+                  placeholder={t('forms.phonePlaceholder')}
                   className={inputClasses}
                 />
               </div>
@@ -295,25 +291,23 @@ export default function BulkForm() {
           <div className="grid grid-cols-1 gap-5">
             <div>
               <label htmlFor="bulk-quantity" className="block text-2xs font-bold text-[#64748B] uppercase tracking-widest mb-1.5">
-                Required Volume (Units / Medical Batches)
+                {t('bulkForm.inquiryType')}
               </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
-                  <PackageOpen className="w-4 h-4" />
-                </span>
-                <input
-                  type="number"
-                  id="bulk-quantity"
-                  value={quantity}
-                  onChange={(e) => {
-                    setQuantity(e.target.value);
-                    if (validationErrors.quantity) setValidationErrors(p => ({ ...p, quantity: '' }));
-                  }}
-                  placeholder="Minimum order quantity: 50+ units / medical batches"
-                  min="50"
-                  className={inputClasses}
-                />
-              </div>
+              <select
+                id="bulk-quantity"
+                value={quantity}
+                onChange={(e) => {
+                  setQuantity(e.target.value);
+                  if (validationErrors.quantity) setValidationErrors(p => ({ ...p, quantity: '' }));
+                }}
+                className="block w-full px-3.5 py-2.5 text-sm bg-white border border-[#EAE5DC] rounded-xl text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#115E59]/40 focus:border-[#115E59] transition-all shadow-sm"
+              >
+                <option value="">{t('bulkForm.selectType')}</option>
+                <option value="chemist">{t('bulkForm.typeRetail')}</option>
+                <option value="doctor">{t('bulkForm.typeDoctor')}</option>
+                <option value="bulk_materials">{t('bulkForm.typeBulk')}</option>
+                <option value="other">{t('bulkForm.typeOther')}</option>
+              </select>
               {validationErrors.quantity && (
                 <p className="text-2xs text-rose-600 mt-1 font-semibold pl-1">{validationErrors.quantity}</p>
               )}
@@ -321,7 +315,7 @@ export default function BulkForm() {
 
             <div>
               <label htmlFor="bulk-requirements" className="block text-2xs font-bold text-[#64748B] uppercase tracking-widest mb-1.5">
-                Medicine Requirements &amp; Specifications
+                {t('bulkForm.details')}
               </label>
               <div className="relative">
                 <span className="absolute top-3 left-3.5 text-[#94A3B8]">
@@ -335,7 +329,7 @@ export default function BulkForm() {
                     setRequirements(e.target.value);
                     if (validationErrors.requirements) setValidationErrors(p => ({ ...p, requirements: '' }));
                   }}
-                  placeholder="Specify remedy names (e.g. Arnica 30C, Belladonna 200C), potencies, packaging formats (pills / liquid / tablets), delivery timelines, or any specialized clinic batch or corporate healthcare supply requirements..."
+                  placeholder={t('bulkForm.detailsPlaceholder')}
                   className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white border border-[#EAE5DC] rounded-xl text-[#1E293B] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#115E59]/40 focus:border-[#115E59] transition-all resize-none shadow-sm"
                 />
               </div>
@@ -349,17 +343,17 @@ export default function BulkForm() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full btn-neon-cyan-outline py-3 px-6 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full btn-neon-cyan-outline py-3 px-6 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase text-xs tracking-wider"
             >
               {submitting ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Submitting Wholesale Inquiry...
+                  {t('bulkForm.submitting')}
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  Submit Wholesale Inquiry
+                  {t('bulkForm.submit')}
                 </>
               )}
             </button>

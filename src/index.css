@@ -250,3 +250,20 @@
   filter: contrast(0.95) saturate(0.85); /* blends beautifully with the warm theme */
 }
 
+/* === LANGUAGE SELECTOR SCREEN === */
+.language-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #FDFBF7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99998;
+  opacity: 1;
+  pointer-events: all;
+}
+
+

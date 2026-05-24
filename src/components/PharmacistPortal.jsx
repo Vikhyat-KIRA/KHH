@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Lock, RefreshCw, Package, Stethoscope, Briefcase, Clock, Search, ChevronDown, Download, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function PharmacistPortal() {
+  const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('retail');
   const [overrideStatus, setOverrideStatus] = useState('auto');
   
@@ -58,9 +60,9 @@ export default function PharmacistPortal() {
   // Format Helper
   const renderStatus = (status) => {
     const s = (status || 'Pending').toLowerCase();
-    if (s.includes('confirm') || s.includes('complet')) return <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-emerald-500/30">Confirmed</span>;
-    if (s.includes('cancel')) return <span className="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-rose-500/30">Cancelled</span>;
-    return <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-amber-500/30">Pending</span>;
+    if (s.includes('confirm') || s.includes('complet')) return <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-emerald-500/30">{language === 'en' ? 'Confirmed' : 'पुष्ट'}</span>;
+    if (s.includes('cancel')) return <span className="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-rose-500/30">{language === 'en' ? 'Cancelled' : 'रद्द'}</span>;
+    return <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-amber-500/30">{language === 'en' ? 'Pending' : 'लंबित'}</span>;
   };
 
   const renderActiveTable = () => {
@@ -68,7 +70,7 @@ export default function PharmacistPortal() {
       return (
         <div className="flex flex-col items-center justify-center py-20 opacity-50 w-full h-full min-h-[300px]">
           <RefreshCw className="w-8 h-8 text-[#0F766E] animate-spin mb-4" />
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Syncing with Command Console...</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{t('portal.loading')}</p>
         </div>
       );
     }
@@ -80,12 +82,12 @@ export default function PharmacistPortal() {
           <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
             <thead className="bg-[#0A1020]">
               <tr className="border-b border-[#1E293B] text-[10px] uppercase tracking-widest text-slate-500">
-                <th className="p-4 font-bold rounded-tl-2xl">Timestamp</th>
-                <th className="p-4 font-bold">Customer</th>
-                <th className="p-4 font-bold">Contact</th>
-                <th className="p-4 font-bold">Medicines (Est. Value)</th>
-                <th className="p-4 font-bold">Total</th>
-                <th className="p-4 font-bold rounded-tr-2xl">Status</th>
+                <th className="p-4 font-bold rounded-tl-2xl">{language === 'en' ? 'Timestamp' : 'समय'}</th>
+                <th className="p-4 font-bold">{t('portal.customer')}</th>
+                <th className="p-4 font-bold">{language === 'en' ? 'Contact' : 'संपर्क'}</th>
+                <th className="p-4 font-bold">{language === 'en' ? 'Medicines (Est. Value)' : 'दवाएं (अनुमानित मूल्य)'}</th>
+                <th className="p-4 font-bold">{t('portal.totalPrice')}</th>
+                <th className="p-4 font-bold rounded-tr-2xl">{t('portal.status')}</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-[#1E293B]/50">
@@ -120,12 +122,12 @@ export default function PharmacistPortal() {
           <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
             <thead className="bg-[#0A1020]">
               <tr className="border-b border-[#1E293B] text-[10px] uppercase tracking-widest text-slate-500">
-                <th className="p-4 font-bold rounded-tl-2xl">Timestamp</th>
-                <th className="p-4 font-bold">Patient Name</th>
-                <th className="p-4 font-bold">Phone Number</th>
-                <th className="p-4 font-bold">Appointment Date</th>
-                <th className="p-4 font-bold">Time Slot</th>
-                <th className="p-4 font-bold rounded-tr-2xl">Status</th>
+                <th className="p-4 font-bold rounded-tl-2xl">{language === 'en' ? 'Timestamp' : 'समय'}</th>
+                <th className="p-4 font-bold">{t('portal.patient')}</th>
+                <th className="p-4 font-bold">{t('portal.phone')}</th>
+                <th className="p-4 font-bold">{t('portal.date')}</th>
+                <th className="p-4 font-bold">{t('portal.slot')}</th>
+                <th className="p-4 font-bold rounded-tr-2xl">{t('portal.status')}</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-[#1E293B]/50">
@@ -152,11 +154,11 @@ export default function PharmacistPortal() {
           <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
             <thead className="bg-[#0A1020]">
               <tr className="border-b border-[#1E293B] text-[10px] uppercase tracking-widest text-slate-500">
-                <th className="p-4 font-bold rounded-tl-2xl">Timestamp</th>
-                <th className="p-4 font-bold">Company / Contact</th>
-                <th className="p-4 font-bold">Contact Info</th>
-                <th className="p-4 font-bold">Quantity</th>
-                <th className="p-4 font-bold rounded-tr-2xl">Requirements</th>
+                <th className="p-4 font-bold rounded-tl-2xl">{language === 'en' ? 'Timestamp' : 'समय'}</th>
+                <th className="p-4 font-bold">{t('portal.company')} / {language === 'en' ? 'Contact' : 'संपर्क'}</th>
+                <th className="p-4 font-bold">{language === 'en' ? 'Contact Info' : 'संपर्क जानकारी'}</th>
+                <th className="p-4 font-bold">{language === 'en' ? 'Quantity' : 'मात्रा'}</th>
+                <th className="p-4 font-bold rounded-tr-2xl">{t('portal.details')}</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-[#1E293B]/50">
@@ -186,12 +188,26 @@ export default function PharmacistPortal() {
     }
   };
 
-  const EmptyState = ({ tab }) => (
-    <div className="flex flex-col items-center justify-center py-20 w-full min-h-[300px]">
-      <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-2">No {tab} Logged Yet</h3>
-      <p className="text-xs text-slate-500 font-medium">Newly placed {tab.toLowerCase()} will appear here automatically. Only the latest 20 items are displayed.</p>
-    </div>
-  );
+  const EmptyState = ({ tab }) => {
+    const getEmptyTitle = () => {
+      if (tab === 'Retail Orders') return language === 'en' ? 'No Retail Orders Logged Yet' : 'अभी तक कोई खुदरा ऑर्डर दर्ज नहीं किया गया है';
+      if (tab === 'Consultations') return language === 'en' ? 'No Consultations Logged Yet' : 'अभी तक कोई परामर्श दर्ज नहीं किया गया है';
+      return language === 'en' ? 'No Wholesale Queries Logged Yet' : 'अभी तक कोई थोक पूछताछ दर्ज नहीं की गई है';
+    };
+
+    const getEmptyDesc = () => {
+      if (tab === 'Retail Orders') return language === 'en' ? 'Newly placed orders will appear here automatically. Only the latest 20 items are displayed.' : 'नए ऑर्डर यहां स्वचालित रूप से दिखाई देंगे। केवल नवीनतम 20 आइटम प्रदर्शित किए जाते हैं।';
+      if (tab === 'Consultations') return language === 'en' ? 'Newly booked appointments will appear here automatically. Only the latest 20 items are displayed.' : 'नए बुक किए गए अपॉइंटमेंट यहां स्वचालित रूप से दिखाई देंगे। केवल नवीनतम 20 आइटम प्रदर्शित किए जाते हैं।';
+      return language === 'en' ? 'Newly placed inquiries will appear here automatically. Only the latest 20 items are displayed.' : 'नई पूछताछ यहां स्वचालित रूप से दिखाई देगी। केवल नवीनतम 20 आइटम प्रदर्शित किए जाते हैं।';
+    };
+
+    return (
+      <div className="flex flex-col items-center justify-center py-20 w-full min-h-[300px]">
+        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-2">{getEmptyTitle()}</h3>
+        <p className="text-xs text-slate-500 font-medium text-center px-4 max-w-md">{getEmptyDesc()}</p>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#060B19] text-white font-sans selection:bg-[#0F766E]/30 relative z-0">
@@ -204,19 +220,19 @@ export default function PharmacistPortal() {
             </div>
             <div>
               <span className="font-black text-lg tracking-wider text-white uppercase flex items-center gap-2">
-                KHH <span className="text-[#2DD4BF]">PHARMACIST PORTAL</span>
+                KHH <span className="text-[#2DD4BF]">{language === 'en' ? 'PHARMACIST PORTAL' : 'फार्मासिस्ट पोर्टल'}</span>
               </span>
               <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">
-                LOGISTICS & COMMAND CONSOLE
+                {t('portal.adminPortal')}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 bg-[#111827] border border-[#1E293B] rounded-full p-1 px-3">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400"><Package className="w-3.5 h-3.5 text-amber-500"/> Orders <span className="bg-[#1E293B] text-white px-2 py-0.5 rounded-full text-[10px]">{retailOrders.length}</span></span>
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 ml-2"><Stethoscope className="w-3.5 h-3.5 text-blue-400"/> Consultations <span className="bg-[#1E293B] text-white px-2 py-0.5 rounded-full text-[10px]">{consultations.length}</span></span>
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 ml-2"><Briefcase className="w-3.5 h-3.5 text-purple-400"/> B2B Inquiries <span className="bg-[#1E293B] text-white px-2 py-0.5 rounded-full text-[10px]">{wholesaleQueries.length}</span></span>
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400"><Package className="w-3.5 h-3.5 text-amber-500"/> {language === 'en' ? 'Orders' : 'ऑर्डर'} <span className="bg-[#1E293B] text-white px-2 py-0.5 rounded-full text-[10px]">{retailOrders.length}</span></span>
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 ml-2"><Stethoscope className="w-3.5 h-3.5 text-blue-400"/> {language === 'en' ? 'Consultations' : 'परामर्श'} <span className="bg-[#1E293B] text-white px-2 py-0.5 rounded-full text-[10px]">{consultations.length}</span></span>
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 ml-2"><Briefcase className="w-3.5 h-3.5 text-purple-400"/> {language === 'en' ? 'B2B Inquiries' : 'थोक पूछताछ'} <span className="bg-[#1E293B] text-white px-2 py-0.5 rounded-full text-[10px]">{wholesaleQueries.length}</span></span>
             </div>
 
             <button 
@@ -225,16 +241,16 @@ export default function PharmacistPortal() {
               className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#0F766E] text-[#2DD4BF] text-[10px] font-bold uppercase tracking-wider hover:bg-[#0F766E]/10 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-3 h-3 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
-              {syncStatus === 'mock' ? 'Mock Sync' : 'Sheets Sync'}
+              {syncStatus === 'mock' ? (language === 'en' ? 'Mock Sync' : 'मॉक सिंक') : t('portal.refreshBtn')}
             </button>
             <button className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#31112C] border border-[#701A4B] text-[#F43F5E] text-[10px] font-bold uppercase tracking-wider hover:bg-[#4C1236] transition-colors">
               <Lock className="w-3 h-3" />
-              Lock Portal
+              {language === 'en' ? 'Lock Portal' : 'पोर्टल लॉक करें'}
             </button>
             <button 
               onClick={() => { window.location.href = '/' }}
-              className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-wider transition-colors ml-2">
-              Exit Portal
+              className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-wider transition-colors ml-2 select-none cursor-pointer">
+              {language === 'en' ? 'Exit Portal' : 'बाहर निकलें'}
             </button>
           </div>
         </div>
@@ -248,11 +264,11 @@ export default function PharmacistPortal() {
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 relative z-10">
           <div>
-            <h1 className="text-3xl font-black text-white tracking-tight uppercase mb-2">Systems Dashboard</h1>
+            <h1 className="text-3xl font-black text-white tracking-tight uppercase mb-2">{language === 'en' ? 'Systems Dashboard' : 'सिस्टम डैशबोर्ड'}</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              Manage operational status, client orders, and wholesale inquiries.
+              {language === 'en' ? 'Manage operational status, client orders, and wholesale inquiries.' : 'परिचालन स्थिति, ग्राहक ऑर्डर और थोक पूछताछ का प्रबंधन करें।'}
               {syncStatus === 'mock' && (
-                <span className="text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded flex items-center gap-1 border border-amber-500/20"><AlertCircle className="w-3 h-3"/> Local Mock Mode</span>
+                <span className="text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded flex items-center gap-1 border border-amber-500/20"><AlertCircle className="w-3 h-3"/> {language === 'en' ? 'Local Mock Mode' : 'स्थानीय मॉक मोड'}</span>
               )}
             </p>
           </div>
@@ -261,21 +277,21 @@ export default function PharmacistPortal() {
           <div className="bg-[#111827] border border-[#1E293B] rounded-xl p-3 flex items-center gap-6 shadow-xl">
             <div>
               <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                <Clock className="w-3 h-3" /> Clinic Override
+                <Clock className="w-3 h-3" /> {t('portal.clinicStatusOverride')}
               </span>
               <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-600 mt-0.5">
-                Force Portal Open Status
+                {language === 'en' ? 'Force Portal Open Status' : 'पोर्टल खुली स्थिति बाध्य करें'}
               </span>
             </div>
             <div className="flex items-center gap-2 bg-[#0B1120] p-1 rounded-lg border border-[#1E293B]">
-              <button onClick={() => setOverrideStatus('auto')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'auto' ? 'bg-[#0F766E] text-white shadow-[0_0_10px_rgba(15,118,110,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
-                <RefreshCw className="w-3 h-3 text-[#2DD4BF]" /> Auto
+              <button onClick={() => setOverrideStatus('auto')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'auto' ? 'bg-[#0F766E] text-white shadow-[0_0_10px_rgba(15,118,110,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
+                <RefreshCw className="w-3 h-3 text-[#2DD4BF]" /> {language === 'en' ? 'Auto' : 'ऑटो'}
               </button>
-              <button onClick={() => setOverrideStatus('open')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'open' ? 'bg-[#166534] text-white shadow-[0_0_10px_rgba(22,101,52,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
-                <CheckCircle className="w-3 h-3 text-emerald-500" /> Open
+              <button onClick={() => setOverrideStatus('open')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'open' ? 'bg-[#166534] text-white shadow-[0_0_10px_rgba(22,101,52,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
+                <CheckCircle className="w-3 h-3 text-emerald-500" /> {t('portal.forceOpen')}
               </button>
-              <button onClick={() => setOverrideStatus('closed')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'closed' ? 'bg-[#7F1D1D] text-white shadow-[0_0_10px_rgba(127,29,29,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
-                <XCircle className="w-3 h-3 text-rose-500" /> Closed
+              <button onClick={() => setOverrideStatus('closed')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'closed' ? 'bg-[#7F1D1D] text-white shadow-[0_0_10px_rgba(127,29,29,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
+                <XCircle className="w-3 h-3 text-rose-500" /> {t('portal.forceClosed')}
               </button>
             </div>
           </div>
@@ -288,19 +304,19 @@ export default function PharmacistPortal() {
               onClick={() => setActiveTab('retail')}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'retail' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
               <Package className={`w-4 h-4 ${activeTab === 'retail' ? 'text-white' : 'text-amber-500'}`} />
-              Retail Orders ({retailOrders.length})
+              {language === 'en' ? 'Retail Orders' : 'खुदरा ऑर्डर'} ({retailOrders.length})
             </button>
             <button 
               onClick={() => setActiveTab('consultations')}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'consultations' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
               <Stethoscope className={`w-4 h-4 ${activeTab === 'consultations' ? 'text-white' : 'text-blue-400'}`} />
-              Consultations ({consultations.length})
+              {language === 'en' ? 'Consultations' : 'परामर्श'} ({consultations.length})
             </button>
             <button 
               onClick={() => setActiveTab('wholesale')}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'wholesale' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
               <Briefcase className={`w-4 h-4 ${activeTab === 'wholesale' ? 'text-white' : 'text-purple-400'}`} />
-              Wholesale Queries ({wholesaleQueries.length})
+              {language === 'en' ? 'Wholesale Queries' : 'थोक पूछताछ'} ({wholesaleQueries.length})
             </button>
           </div>
         </div>
@@ -311,22 +327,28 @@ export default function PharmacistPortal() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input 
               type="text" 
-              placeholder="Search orders by name, phone, or address..." 
-              className="w-full bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#0F766E] transition-colors shadow-lg"
+              placeholder={
+                activeTab === 'retail' 
+                  ? (language === 'en' ? "Search orders by name, phone, or address..." : "नाम, फोन या पते से ऑर्डर खोजें...") 
+                  : activeTab === 'consultations'
+                  ? (language === 'en' ? "Search appointments by patient name or phone..." : "मरीज के नाम या फोन से अपॉइंटमेंट खोजें...")
+                  : (language === 'en' ? "Search wholesale queries by name, company, or remedies..." : "नाम, कंपनी या दवाओं से थोक पूछताछ खोजें...")
+              }
+              className="w-full bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-slate-550 focus:outline-none focus:border-[#0F766E] transition-colors shadow-lg"
             />
           </div>
           <div className="relative">
             <select className="appearance-none bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-4 pr-10 text-sm text-white font-semibold focus:outline-none focus:border-[#0F766E] transition-colors cursor-pointer outline-none shadow-lg">
-              <option>Show All Statuses</option>
-              <option>Pending</option>
-              <option>Confirmed</option>
-              <option>Cancelled</option>
+              <option>{language === 'en' ? 'Show All Statuses' : 'सभी स्थितियां दिखाएं'}</option>
+              <option>{language === 'en' ? 'Pending' : 'लंबित'}</option>
+              <option>{language === 'en' ? 'Confirmed' : 'पुष्ट'}</option>
+              <option>{language === 'en' ? 'Cancelled' : 'रद्द'}</option>
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
           </div>
-          <button className="flex items-center gap-2 bg-[#111827] border border-[#1E293B] hover:border-slate-500 rounded-xl py-3 px-6 text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-all shadow-lg">
+          <button className="flex items-center gap-2 bg-[#111827] border border-[#1E293B] hover:border-slate-500 rounded-xl py-3 px-6 text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-all shadow-lg select-none cursor-pointer">
             <Download className="w-4 h-4 text-blue-400" />
-            Export CSV
+            {language === 'en' ? 'Export CSV' : 'सीएसवी निर्यात करें'}
           </button>
         </div>
 
@@ -336,7 +358,7 @@ export default function PharmacistPortal() {
           {lastSync && !isLoading && (
             <div className="bg-[#0A1020] border-t border-[#1E293B] p-2 px-4 flex justify-end">
               <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
-                Last synced: {lastSync}
+                {t('portal.lastUpdated', { time: lastSync })}
               </span>
             </div>
           )}

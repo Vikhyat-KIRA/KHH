@@ -19,11 +19,20 @@ import BookingCalendar from './components/BookingCalendar';
 import BulkForm from './components/BulkForm';
 import MyBookings from './components/MyBookings';
 import RetailForm from './components/RetailForm';
+import { useLanguage } from './context/LanguageContext';
+
 
 export default function App() {
+  const { language, setLanguage, t } = useLanguage();
   const [isOpenNow, setIsOpenNow] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+  const [showLanguageSelect, setShowLanguageSelect] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !localStorage.getItem('preferred_language');
+    }
+    return true;
+  });
   const [activeView, setActiveView] = useState(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.replace(/\/$/, "");
@@ -84,22 +93,22 @@ export default function App() {
   useEffect(() => {
     try {
       if (activeView === 'bookings') {
-        document.title = "My Confirmed Spots & Slips | Kanchan Homoeo Hall Ranchi";
+        document.title = t('seo.bookingsTitle');
         const descMeta = document.querySelector('meta[name="description"]');
         if (descMeta) {
-          descMeta.setAttribute('content', 'View, track, or verify your scheduled doctor consultations at Kanchan Homoeo Hall Ranchi. Easily check status using your phone number.');
+          descMeta.setAttribute('content', t('seo.bookingsDesc'));
         }
       } else {
-        document.title = "Kanchan Homoeo Hall | Trusted Homoeopathic Care & Wholesale Remedies in Ranchi";
+        document.title = t('seo.mainTitle');
         const descMeta = document.querySelector('meta[name="description"]');
         if (descMeta) {
-          descMeta.setAttribute('content', 'Kanchan Homoeo Hall — trusted holistic healthcare in Ranchi, Jharkhand. Specializing in safe, gentle, and effective homoeopathic treatments, premium natural remedies, wholesale medicine distribution, and dedicated patient support.');
+          descMeta.setAttribute('content', t('seo.mainDesc'));
         }
       }
     } catch (e) {
       console.error("SEO update error", e);
     }
-  }, [activeView]);
+  }, [activeView, language]);
 
   // Dynamic Open Status Badge logic — Mon–Sat, 10:30 AM to 8:00 PM IST (Ranchi Time)
   useEffect(() => {
@@ -207,6 +216,75 @@ export default function App() {
         </div>
       )}
 
+      {/* Premium Language Selection Overlay */}
+      {!showIntro && showLanguageSelect && (
+        <div className="language-overlay animate-fade-in">
+          {/* Background Blurs */}
+          <div className="absolute top-1/4 right-0 w-80 h-80 rounded-full bg-[#115E59]/5 blur-[120px] pointer-events-none"></div>
+          <div className="absolute bottom-1/4 left-0 w-80 h-80 rounded-full bg-[#0F766E]/5 blur-[100px] pointer-events-none"></div>
+          
+          <div className="language-card glassmorphism max-w-md w-full mx-6 p-8 rounded-3xl relative overflow-hidden transition-all text-center">
+            {/* Gold Accent Strip */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-neon"></div>
+            
+            {/* Logo in selector card */}
+            <div className="w-16 h-16 rounded-2xl bg-[#115E59] flex items-center justify-center text-white mx-auto shadow-lg mb-6">
+              <Activity className="w-9 h-9" />
+            </div>
+            
+            <h2 className="font-display font-extrabold text-2xl tracking-tight text-[#1A2421] mb-2 uppercase">
+              KANCHAN <span className="text-[#0F766E]">HOMOEO HALL</span>
+            </h2>
+            <p className="text-3xs font-extrabold uppercase tracking-widest text-[#5A6561] mb-6">
+              Holistic Healing &amp; Natural Remedies
+            </p>
+            
+            <div className="h-[1px] bg-gradient-to-r from-transparent via-[#EAE5DC] to-transparent my-6"></div>
+            
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-6">
+              Choose Your Language / भाषा का चयन करें
+            </p>
+            
+            <div className="flex flex-col gap-4">
+              {/* English button */}
+              <button
+                onClick={() => {
+                  setLanguage('en');
+                  setShowLanguageSelect(false);
+                }}
+                className="w-full py-4 px-6 bg-white border-2 border-[#EAE5DC] text-[#1E293B] font-extrabold text-sm rounded-xl shadow-sm hover:border-[#115E59] hover:bg-[#115E59]/5 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-between group cursor-pointer"
+              >
+                <span className="flex flex-col items-start text-left">
+                  <span className="text-sm font-black text-slate-800 group-hover:text-[#115E59]">English</span>
+                  <span className="text-4xs uppercase tracking-widest text-slate-400 font-bold mt-0.5">Explore Site in English</span>
+                </span>
+                <span className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 group-hover:bg-[#115E59]/10 group-hover:text-[#115E59] flex items-center justify-center font-bold text-2xs transition-all">EN</span>
+              </button>
+              
+              {/* Hindi button */}
+              <button
+                onClick={() => {
+                  setLanguage('hi');
+                  setShowLanguageSelect(false);
+                }}
+                className="w-full py-4 px-6 bg-white border-2 border-[#EAE5DC] text-[#1E293B] font-extrabold text-sm rounded-xl shadow-sm hover:border-[#115E59] hover:bg-[#115E59]/5 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-between group cursor-pointer"
+              >
+                <span className="flex flex-col items-start text-left">
+                  <span className="text-sm font-black text-slate-800 group-hover:text-[#115E59]">हिन्दी (Hindi)</span>
+                  <span className="text-4xs uppercase tracking-widest text-slate-400 font-bold mt-0.5">वेबसाइट हिन्दी में देखें</span>
+                </span>
+                <span className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 group-hover:bg-[#115E59]/10 group-hover:text-[#115E59] flex items-center justify-center font-bold text-2xs transition-all">HI</span>
+              </button>
+            </div>
+            
+            <div className="mt-8 text-4xs font-bold text-[#64748B] leading-relaxed uppercase tracking-wider">
+              <div>Your Wellness, Our Heritage</div>
+              <div className="text-slate-400 mt-1">आपका स्वास्थ्य, हमारी धरोहर</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Background Watermark */}
       <div className="bg-watermark"></div>
       
@@ -243,13 +321,13 @@ export default function App() {
                 activeView === 'main' ? 'text-[#115E59]' : 'text-[#5A6561] hover:text-[#115E59]'
               }`}
             >
-              Home
+              {t('nav.home')}
             </button>
-            <a href="#credibility" onClick={(e) => smoothScroll(e, 'credibility')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">About</a>
-            <a href="#meet-owner" onClick={(e) => smoothScroll(e, 'meet-owner')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Meet the Owner</a>
-            <a href="#book-slot" onClick={(e) => smoothScroll(e, 'book-slot')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Appointments</a>
-            <a href="#retail-buy" onClick={(e) => smoothScroll(e, 'retail-buy')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Buy Remedies</a>
-            <a href="#bulk-orders" onClick={(e) => smoothScroll(e, 'bulk-orders')} className="text-[#5A6561] hover:text-[#0F766E] transition-colors">Wholesale</a>
+            <a href="#credibility" onClick={(e) => smoothScroll(e, 'credibility')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.about')}</a>
+            <a href="#meet-owner" onClick={(e) => smoothScroll(e, 'meet-owner')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.owner')}</a>
+            <a href="#book-slot" onClick={(e) => smoothScroll(e, 'book-slot')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.appointments')}</a>
+            <a href="#retail-buy" onClick={(e) => smoothScroll(e, 'retail-buy')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.buyRemedies')}</a>
+            <a href="#bulk-orders" onClick={(e) => smoothScroll(e, 'bulk-orders')} className="text-[#5A6561] hover:text-[#0F766E] transition-colors">{t('nav.wholesale')}</a>
             <button
               onClick={() => {
                 setActiveView('bookings');
@@ -259,9 +337,18 @@ export default function App() {
                 activeView === 'bookings' ? 'text-[#115E59]' : 'text-[#5A6561] hover:text-[#115E59]'
               }`}
             >
-              My Bookings
+              {t('nav.myBookings')}
             </button>
-            <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Location</a>
+            <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.location')}</a>
+            
+            {/* Sleek inline language switcher */}
+            <button
+              onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#EAE5DC] hover:border-[#115E59] text-xs font-bold text-[#115E59] bg-[#F9F6F0]/50 hover:bg-[#115E59]/5 transition-all cursor-pointer shadow-sm select-none"
+              title="Switch Language / भाषा बदलें"
+            >
+              🌐 {language === 'en' ? 'हिन्दी' : 'English'}
+            </button>
           </nav>
 
           {/* Quick CTA */}
@@ -272,13 +359,13 @@ export default function App() {
                 : 'bg-slate-50 border-slate-200 text-slate-500'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${isOpenNow ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-              {isOpenNow ? 'Open Now — Counter Active' : 'Closed — Taking Online Appointments'}
+              {isOpenNow ? t('nav.openNow') : t('nav.closedOnline')}
             </span>
             <a 
               href="tel:9431360455"
               className="py-2 px-4.5 bg-[#115E59] text-white font-bold text-xs rounded-lg shadow-md hover:bg-[#0D4F4A] hover:shadow-lg active:scale-95 transition-all uppercase tracking-wider"
             >
-              Call Now
+              {t('nav.callNow')}
             </a>
           </div>
 
@@ -305,13 +392,13 @@ export default function App() {
                 activeView === 'main' ? 'text-[#115E59]' : 'text-[#1A2421]'
               }`}
             >
-              Home
+              {t('nav.home')}
             </button>
-            <a href="#credibility" onClick={(e) => smoothScroll(e, 'credibility')} className="text-base font-semibold text-[#1A2421]">About</a>
-            <a href="#meet-owner" onClick={(e) => smoothScroll(e, 'meet-owner')} className="text-base font-semibold text-[#1A2421]">Meet the Owner</a>
-            <a href="#book-slot" onClick={(e) => smoothScroll(e, 'book-slot')} className="text-base font-semibold text-[#1A2421]">Appointments</a>
-            <a href="#retail-buy" onClick={(e) => smoothScroll(e, 'retail-buy')} className="text-base font-semibold text-[#1A2421]">Buy Remedies (Retail)</a>
-            <a href="#bulk-orders" onClick={(e) => smoothScroll(e, 'bulk-orders')} className="text-base font-semibold text-[#1A2421]">Wholesale</a>
+            <a href="#credibility" onClick={(e) => smoothScroll(e, 'credibility')} className="text-base font-semibold text-[#1A2421]">{t('nav.about')}</a>
+            <a href="#meet-owner" onClick={(e) => smoothScroll(e, 'meet-owner')} className="text-base font-semibold text-[#1A2421]">{t('nav.owner')}</a>
+            <a href="#book-slot" onClick={(e) => smoothScroll(e, 'book-slot')} className="text-base font-semibold text-[#1A2421]">{t('nav.appointments')}</a>
+            <a href="#retail-buy" onClick={(e) => smoothScroll(e, 'retail-buy')} className="text-base font-semibold text-[#1A2421]">{t('nav.buyRemedies')}</a>
+            <a href="#bulk-orders" onClick={(e) => smoothScroll(e, 'bulk-orders')} className="text-base font-semibold text-[#1A2421]">{t('nav.wholesale')}</a>
             <button
               onClick={() => {
                 setActiveView('bookings');
@@ -322,26 +409,35 @@ export default function App() {
                 activeView === 'bookings' ? 'text-[#115E59]' : 'text-[#1A2421]'
               }`}
             >
-              My Bookings
+              {t('nav.myBookings')}
             </button>
-            <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-base font-semibold text-[#1A2421]">Location</a>
+            <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-base font-semibold text-[#1A2421]">{t('nav.location')}</a>
             
             <div className="border-t border-[#EAE5DC] pt-4 flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-[#5A6561] font-bold tracking-wider uppercase">Clinic Status:</span>
+                <span className="text-xs text-[#5A6561] font-bold tracking-wider uppercase">{t('nav.clinicStatus')}</span>
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-2xs font-extrabold tracking-widest border uppercase ${
                   isOpenNow 
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
                     : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                  {isOpenNow ? 'Open Now — Counter Active' : 'Closed — Taking Online Appointments'}
+                  {isOpenNow ? t('nav.openNow') : t('nav.closedOnline')}
                 </span>
+              </div>
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                <span className="text-xs text-[#5A6561] font-bold tracking-wider uppercase">Language / भाषा:</span>
+                <button
+                  onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#EAE5DC] text-xs font-bold text-[#115E59] bg-[#F9F6F0]/50 hover:bg-[#115E59]/5 transition-all cursor-pointer shadow-sm"
+                >
+                  🌐 {language === 'en' ? 'हिन्दी' : 'English'}
+                </button>
               </div>
               <a 
                 href="tel:9431360455"
                 className="w-full text-center py-3 bg-[#115E59] text-white font-bold rounded-xl shadow-md uppercase tracking-wider text-xs hover:bg-[#0D4F4A]"
               >
-                Call Now — 9431360455
+                {t('nav.callNow')} — 9431360455
               </a>
             </div>
           </div>
@@ -367,18 +463,27 @@ export default function App() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              Trusted Holistic Healing &amp; Authentic Homoeopathic Remedies
+              {t('hero.badge')}
             </div>
 
             {/* Main Header */}
             <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-[#1E293B] tracking-tight leading-[1.08] mb-8">
-              Trusted Holistic Healing <br className="hidden sm:inline" />
-              &amp; <span className="text-gradient-neon">Authentic Homoeopathic</span> Remedies
+              {language === 'en' ? (
+                <>
+                  Trusted Holistic Healing <br className="hidden sm:inline" />
+                  &amp; <span className="text-gradient-neon">Authentic Homoeopathic</span> Remedies
+                </>
+              ) : (
+                <>
+                  विश्वसनीय समग्र उपचार <br className="hidden sm:inline" />
+                  और <span className="text-gradient-neon">प्रामाणिक होम्योपैथिक</span> दवाएं
+                </>
+              )}
             </h1>
 
             {/* About Us Copy */}
             <p className="text-base sm:text-lg md:text-xl text-[#64748B] leading-relaxed max-w-3xl mb-12">
-              Serving Ranchi with safe, gentle, and effective natural care. Visit our established counter at Upper Bazar or book a personal consultation below.
+              {t('hero.subtitle')}
             </p>
 
             {/* Action Buttons */}
@@ -389,7 +494,7 @@ export default function App() {
                 className="btn-neon-emerald py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer font-bold text-center"
               >
                 <CalendarDays className="w-5 h-5 shrink-0" />
-                Book Consultation
+                {t('hero.bookBtn')}
               </a>
               <a 
                 href="#retail-buy" 
@@ -397,7 +502,7 @@ export default function App() {
                 className="btn-neon-cyan-outline py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer font-bold text-center"
               >
                 <ShoppingBag className="w-4.5 h-4.5 shrink-0 text-[#115E59]" />
-                Buy Remedies (Retail)
+                {t('hero.buyBtn')}
               </a>
               <a 
                 href="#bulk-orders" 
@@ -405,7 +510,7 @@ export default function App() {
                 className="btn-neon-cyan-outline py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer font-bold text-center"
               >
                 <Briefcase className="w-4.5 h-4.5 shrink-0 text-[#115E59]" />
-                Wholesale Portal
+                {t('hero.wholesaleBtn')}
                 <ArrowUpRight className="w-4 h-4 text-[#115E59]" />
               </a>
             </div>
@@ -417,9 +522,9 @@ export default function App() {
       {/* ABOUT US SECTION */}
       <section className="py-16 bg-white/90 border-b border-[#EAE5DC] relative z-10">
         <div className="max-w-4xl mx-auto px-6 text-center space-y-4">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-[#1E293B] tracking-tight">About Kanchan Homoeo Hall</h2>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-[#1E293B] tracking-tight">{t('about.title')}</h2>
           <p className="text-sm md:text-base text-[#64748B] leading-relaxed">
-            Kanchan Homoeo Hall is a premier homoeopathic pharmacy and clinic dedicated to root-cause wellness. Located near Mahabir Chowk, we maintain an extensive, high-grade inventory of classic natural remedies and dilutions. We combine years of trusted community pharmaceutical service with dedicated afternoon consultation sessions to ensure personalized healthcare paths for every patient.
+            {t('about.text')}
           </p>
         </div>
       </section>
@@ -435,9 +540,9 @@ export default function App() {
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-extrabold text-[#1E293B] text-lg tracking-tight">AYUSH &amp; GMP Certified</h3>
+                <h3 className="font-extrabold text-[#1E293B] text-lg tracking-tight">{t('credibility.certTitle')}</h3>
                 <p className="text-xs text-[#64748B] leading-relaxed">
-                  Every remedy stocked and dispensed at Kanchan Homoeo Hall strictly adheres to AYUSH Ministry guidelines and Good Manufacturing Practices for natural homoeopathic preparations.
+                  {t('credibility.certText')}
                 </p>
               </div>
             </div>
@@ -448,9 +553,9 @@ export default function App() {
                 <Users className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-extrabold text-[#1E293B] text-lg tracking-tight">5,000+ Patients Served</h3>
+                <h3 className="font-extrabold text-[#1E293B] text-lg tracking-tight">{t('credibility.servedTitle')}</h3>
                 <p className="text-xs text-[#64748B] leading-relaxed">
-                  Trusted by thousands of families across Ranchi and Jharkhand for gentle, individualized homoeopathic care targeting the root cause of health conditions.
+                  {t('credibility.servedText')}
                 </p>
               </div>
             </div>
@@ -461,9 +566,9 @@ export default function App() {
                 <Star className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-extrabold text-[#1E293B] text-lg tracking-tight">4.9★ Patient Satisfaction</h3>
+                <h3 className="font-extrabold text-[#1E293B] text-lg tracking-tight">{t('credibility.ratingTitle')}</h3>
                 <p className="text-xs text-[#64748B] leading-relaxed">
-                  Consistently recognized for compassionate care, transparent consultation, and premium-grade homoeopathic dilutions sourced from certified natural pharmacopoeias.
+                  {t('credibility.ratingText')}
                 </p>
               </div>
             </div>
@@ -506,8 +611,8 @@ export default function App() {
                     
                     {/* Elegant overlay badge */}
                     <div className="absolute bottom-4 left-4 right-4 bg-white/80 backdrop-blur-md border border-[#EAE5DC] rounded-xl p-3 shadow-md text-center z-20">
-                      <span className="block text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">Owner &amp; Proprietor</span>
-                      <span className="block text-xs font-bold text-slate-800 mt-0.5">Mr. Rahul Kumar</span>
+                      <span className="block text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">{t('meetOwner.subtitle')}</span>
+                      <span className="block text-xs font-bold text-slate-800 mt-0.5">{t('meetOwner.title')}</span>
                     </div>
 
                   </div>
@@ -520,7 +625,7 @@ export default function App() {
                 
                 <div className="absolute -bottom-4 -left-4 bg-white border border-[#EAE5DC] shadow-md rounded-xl py-2 px-3 flex items-center gap-2 z-20 transition-all duration-500 group-hover:-translate-y-1">
                   <Star className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">Since 1995</span>
+                  <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">{language === 'en' ? 'Since 1995' : '1995 से'}</span>
                 </div>
 
               </div>
@@ -532,17 +637,17 @@ export default function App() {
               {/* Badges & Main Title */}
               <div className="space-y-4">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
-                  Meet the Owner
+                  {t('meetOwner.badge')}
                 </div>
                 
                 <div className="space-y-2">
                   <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1E293B] tracking-tight">
-                    Mr. Rahul Kumar
+                    {t('meetOwner.title')}
                   </h2>
                   <p className="text-sm font-extrabold text-[#115E59] tracking-wide uppercase flex items-center gap-2">
-                    <span>Owner &amp; Proprietor</span>
+                    <span>{t('meetOwner.subtitle')}</span>
                     <span className="w-1.5 h-1.5 rounded-full bg-[#115E59]/40"></span>
-                    <span>Kanchan Homoeo Hall</span>
+                    <span>{t('nav.clinicStatus') === 'Clinic Status:' ? 'Kanchan Homoeo Hall' : 'कंचन होम्योपैथी हॉल'}</span>
                   </p>
                 </div>
               </div>
@@ -550,10 +655,10 @@ export default function App() {
               {/* Bio Narrative Text */}
               <div className="space-y-4 text-slate-600 text-sm sm:text-base leading-relaxed">
                 <p>
-                  Welcome to <strong className="text-[#1E293B]">Kanchan Homoeo Hall</strong>. Since 1995, our commitment has been to provide authentic, gentle, and high-quality homoeopathic remedies to the community of Ranchi. We believe in offering access to the finest natural formulations and hosting expert consultation sessions to support your personal wellness journey.
+                  {t('meetOwner.p1')}
                 </p>
                 <p>
-                  We coordinate closely with experienced consulting doctors who specialize in clinical diagnostics and root-cause homoeopathic therapies. By offering AYUSH-standardized brands alongside dedicated professional consultations, we help you find safe, gentle, and effective pathways to holistic health.
+                  {t('meetOwner.p2')}
                 </p>
               </div>
 
@@ -563,23 +668,23 @@ export default function App() {
                   ✨
                 </div>
                 <div>
-                  <span className="block text-3xs font-extrabold text-[#115E59] uppercase tracking-widest">Established Legacy</span>
-                  <p className="text-sm font-bold text-slate-800 mt-0.5">Been in this field since 1995</p>
+                  <span className="block text-3xs font-extrabold text-[#115E59] uppercase tracking-widest">{t('meetOwner.legacyTitle')}</span>
+                  <p className="text-sm font-bold text-slate-800 mt-0.5">{t('meetOwner.legacyText')}</p>
                 </div>
               </div>
 
               {/* Quote Block & Signature */}
               <div className="border-t border-[#EAE5DC]/80 pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                 <blockquote className="text-xs font-semibold italic text-[#115E59] leading-relaxed max-w-md">
-                  "We are dedicated to preserving the integrity of traditional homoeopathy, ensuring that pure remedies and expert consultations are always accessible to our community."
+                  {t('meetOwner.quote')}
                 </blockquote>
                 
                 {/* Elegant Handwritten Style Signature */}
                 <div className="shrink-0 flex flex-col items-end">
                   <span className="font-serif italic text-xl font-bold text-[#115E59] tracking-wide select-none">
-                    Rahul Kumar
+                    {t('meetOwner.signature')}
                   </span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Mr. Rahul Kumar</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t('meetOwner.title')}</span>
                 </div>
               </div>
 
@@ -594,13 +699,13 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
-              Patient Appointment Portal
+              {t('appointment.badge')}
             </div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#1E293B] tracking-tight">
-              Book Your Consultation Slot
+              {t('appointment.title')}
             </h2>
             <p className="text-sm md:text-base text-[#64748B] leading-relaxed">
-              Select an available date (Monday–Saturday) and pick a consultation slot between 3:00 PM and 5:00 PM. Appointments are confirmed instantly and stored securely.
+              {t('appointment.subtitle')}
             </p>
           </div>
 
@@ -615,11 +720,20 @@ export default function App() {
             </div>
             <div className="space-y-1">
               <h4 className="text-xs font-extrabold uppercase tracking-widest text-[#115E59]">
-                Pro Tip: Quick Booking Proof Access
+                {t('appointment.tipTitle')}
               </h4>
               <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                Need an official slip of your confirmed or pending spot for verification? 
-                Go to the <button onClick={() => { setActiveView('bookings'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-[#115E59] font-extrabold underline cursor-pointer hover:text-[#0D4F4A] bg-transparent border-0 p-0 inline">My Bookings</button> tab in the main navigation menu above. You can view your current slips automatically or lookup history securely by phone number — **no password or email login required!**
+                {language === 'en' ? (
+                  <>
+                    Need an official slip of your confirmed or pending spot for verification? 
+                    Go to the <button onClick={() => { setActiveView('bookings'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-[#115E59] font-extrabold underline cursor-pointer hover:text-[#0D4F4A] bg-transparent border-0 p-0 inline">My Bookings</button> tab in the main navigation menu above. You can view your current slips automatically or lookup history securely by phone number — **no password or email login required!**
+                  </>
+                ) : (
+                  <>
+                    सत्यापन के लिए अपने पुष्ट या लंबित स्लॉट की आधिकारिक पर्ची चाहिए?
+                    ऊपर मुख्य नेविगेशन मेनू में <button onClick={() => { setActiveView('bookings'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-[#115E59] font-extrabold underline cursor-pointer hover:text-[#0D4F4A] bg-transparent border-0 p-0 inline">मेरे अपॉइंटमेंट</button> टैब पर जाएं। आप अपनी वर्तमान पर्चियां देख सकते हैं या फोन नंबर द्वारा सुरक्षित रूप से इतिहास खोज सकते हैं — **कोई पासवर्ड या ईमेल लॉगिन आवश्यक नहीं है!**
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -632,11 +746,11 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-[#0F766E]"></div>
-            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#0F766E]">Segment Shift</span>
+            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#0F766E]">{t('dividers.shift')}</span>
           </div>
           <div className="h-[1px] flex-1 bg-gradient-to-r from-[#0F766E]/30 via-[#EAE5DC] to-[#115E59]/30 mx-4 hidden md:block"></div>
           <div className="flex items-center gap-3">
-            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">Retail Pharmacy Home Delivery</span>
+            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">{t('dividers.delivery')}</span>
             <div className="w-2.5 h-2.5 rounded-full bg-[#115E59]"></div>
           </div>
         </div>
@@ -649,13 +763,13 @@ export default function App() {
           
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
-              Retail Home Delivery Portal
+              {t('retail.badge')}
             </div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#1E293B] tracking-tight">
-              Order Homeopathic Remedies Online
+              {t('retail.title')}
             </h2>
             <p className="text-sm md:text-base text-[#64748B] leading-relaxed">
-              Get genuine AYUSH-certified homeopathic dilutions, mother tinctures, and biochemic formulations delivered within 24 hours in Ranchi. Free delivery on orders above ₹500.
+              {t('retail.subtitle')}
             </p>
           </div>
 
@@ -670,11 +784,11 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-[#0F766E]"></div>
-            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#0F766E]">Segment Shift</span>
+            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#0F766E]">{t('dividers.shift')}</span>
           </div>
           <div className="h-[1px] flex-1 bg-gradient-to-r from-[#0F766E]/30 via-[#EAE5DC] to-[#115E59]/30 mx-4 hidden md:block"></div>
           <div className="flex items-center gap-3">
-            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">Wholesale Medicine Distribution</span>
+            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">{t('dividers.wholesale')}</span>
             <div className="w-2.5 h-2.5 rounded-full bg-[#115E59]"></div>
           </div>
         </div>
@@ -687,13 +801,13 @@ export default function App() {
           
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-[#0F766E] text-xs font-semibold uppercase tracking-wider">
-              Institutional Supply &amp; Bulk Orders
+              {t('bulk.badge')}
             </div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#1E293B] tracking-tight">
-              Institutional Supply &amp; Bulk Medicine Orders
+              {t('bulk.title')}
             </h2>
             <p className="text-sm md:text-base text-[#64748B] leading-relaxed">
-              For retail clinics, research batches, or wholesale distribution requests. Our team responds within 24 hours.
+              {t('bulk.subtitle')}
             </p>
           </div>
 
@@ -720,15 +834,18 @@ export default function App() {
                       : 'bg-slate-50 border-slate-200 text-slate-500'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isOpenNow ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                    {isOpenNow ? 'Open Now — Counter Active' : 'Closed — Taking Online Appointments'}
+                    {isOpenNow ? t('nav.openNow') : t('nav.closedOnline')}
                   </span>
                 </div>
                 <h2 className="text-3xl font-extrabold text-[#1E293B] tracking-tight">
-                  Clinic Location &amp; <br />
-                  Contact Hub
+                  {language === 'en' ? (
+                    <>Clinic Location &amp; <br />Contact Hub</>
+                  ) : (
+                    <>क्लिनिक स्थान &amp; <br />संपर्क केंद्र</>
+                  )}
                 </h2>
                 <p className="text-sm text-[#64748B] leading-relaxed">
-                  Visit us at our clinic near Mahabir Chowk in Upper Bazar, Ranchi. Walk-in consultations are welcome during clinic hours. Online appointment booking is available 24/7.
+                  {t('contact.subtitle')}
                 </p>
               </div>
 
@@ -736,19 +853,19 @@ export default function App() {
               <div className="bg-white border border-[#EAE5DC] rounded-2xl p-5 space-y-4 shadow-md shadow-[#EFEAE2]">
                 <h3 className="font-semibold text-[#1E293B] text-sm uppercase tracking-widest border-b border-[#EAE5DC] pb-3 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-[#115E59]" />
-                  Clinic Timings
+                  {t('contact.timingsTitle')}
                 </h3>
                 <div className="space-y-2.5 text-xs">
                   <div className="flex justify-between items-center text-[#1E293B]/85">
-                    <span>Monday — Saturday</span>
+                    <span>{t('contact.monSat')}</span>
                     <span className="font-bold text-[#1E293B]">10:30 AM — 08:00 PM</span>
                   </div>
                   <div className="flex justify-between items-center text-[#64748B]/70">
-                    <span>Sunday</span>
-                    <span className="font-semibold">Closed (Weekly Day Off)</span>
+                    <span>{t('contact.sunday')}</span>
+                    <span className="font-semibold">{t('contact.sundayClosed')}</span>
                   </div>
                   <div className="mt-3 pt-3 border-t border-[#EAE5DC] flex justify-between items-center text-[#1E293B]/85">
-                    <span className="text-[#0F766E] font-semibold">Doctor Consultation</span>
+                    <span className="text-[#0F766E] font-semibold">{t('contact.docConsult')}</span>
                     <span className="font-bold text-[#0F766E]">03:00 PM — 05:00 PM</span>
                   </div>
                 </div>
@@ -760,7 +877,7 @@ export default function App() {
                   <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-[#115E59]">
                     <PhoneCall className="w-4 h-4" />
                   </div>
-                  <span className="block text-3xs font-extrabold text-[#64748B] uppercase tracking-wider">Direct Hotline</span>
+                  <span className="block text-3xs font-extrabold text-[#64748B] uppercase tracking-wider">{t('contact.hotline')}</span>
                   <a href="tel:9431360455" className="text-xs font-bold text-[#1E293B] hover:text-[#115E59] transition-colors">9431360455</a>
                 </div>
 
@@ -768,7 +885,7 @@ export default function App() {
                   <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-[#0F766E]">
                     <Mail className="w-4 h-4" />
                   </div>
-                  <span className="block text-3xs font-extrabold text-[#64748B] uppercase tracking-wider">Email Us</span>
+                  <span className="block text-3xs font-extrabold text-[#64748B] uppercase tracking-wider">{t('contact.emailUs')}</span>
                   <a href="mailto:kanchanhomoeohall@gmail.com" className="text-xs font-bold text-[#1E293B] hover:text-[#0F766E] transition-colors break-all">kanchanhomoeohall@gmail.com</a>
                 </div>
               </div>
@@ -798,8 +915,8 @@ export default function App() {
                   <Building className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">Clinic Address</h4>
-                  <p className="text-2xs text-[#64748B] mt-0.5">Kanchan Homoeo Hall, Near Mahabir Chowk, PyadaToli, Upper Bazar, Ranchi, Jharkhand 834001</p>
+                  <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">{t('contact.addressTitle')}</h4>
+                  <p className="text-2xs text-[#64748B] mt-0.5">{t('contact.addressText')}</p>
                 </div>
               </div>
 
@@ -817,11 +934,11 @@ export default function App() {
           
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-[#115E59]" />
-            <span>&copy; {new Date().getFullYear()} Kanchan Homoeo Hall, Ranchi. All rights reserved.</span>
+            <span>{t('footer.rights', { year: new Date().getFullYear() })}</span>
           </div>
 
           <div className="flex items-center gap-6">
-            <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="hover:text-[#1A2421] transition-colors">Contact Us</a>
+            <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="hover:text-[#1A2421] transition-colors">{t('footer.contact')}</a>
             <button
               onClick={() => {
                 localStorage.removeItem('clinic_appointments');
@@ -829,12 +946,13 @@ export default function App() {
                 localStorage.removeItem('user_local_bookings');
                 localStorage.removeItem('bulk_orders');
                 localStorage.removeItem('retail_orders');
+                localStorage.removeItem('preferred_language');
                 window.location.reload();
               }}
               className="text-rose-600 hover:text-rose-800 transition-colors font-extrabold uppercase tracking-wider bg-transparent border-0 cursor-pointer p-0 flex items-center gap-1"
               title="Wipes all localStorage mock appointments and seed caches to start testing from a clean slate"
             >
-              ⚙️ Reset Demo (Wipe Cache)
+              ⚙️ {t('footer.reset')}
             </button>
           </div>
 
