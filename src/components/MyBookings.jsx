@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Search, Calendar, Clock, User, Phone, CheckCircle2, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Calendar, Clock, User, Phone, CheckCircle2, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2, Lock } from 'lucide-react';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 
-export default function MyBookings({ onBackToHome }) {
+export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
   const [searchPhone, setSearchPhone] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
@@ -13,6 +13,245 @@ export default function MyBookings({ onBackToHome }) {
   const [cancellingId, setCancellingId] = useState(null);   // ID being cancelled
   const [confirmId, setConfirmId] = useState(null);         // ID waiting for confirm dialog
   const [cancelError, setCancelError] = useState('');
+
+  // Clinic Administration Portal States
+  const [isAdminMode, setIsAdminMode] = useState(initialAdminMode);
+  const [adminTab, setAdminTab] = useState('orders'); // 'orders' | 'appointments' | 'b2b'
+  const [allOrders, setAllOrders] = useState([]);
+  const [allAppointments, setAllAppointments] = useState([]);
+  const [allB2BQueries, setAllB2BQueries] = useState([]);
+  const [loadingAdminData, setLoadingAdminData] = useState(false);
+  const [adminActionLoadingId, setAdminActionLoadingId] = useState(null);
+  const [openOverride, setOpenOverride] = useState(localStorage.getItem('clinic_open_override') || 'auto');
+
+  // Secure Password States
+  const [password, setPassword] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('pharmacist_authorized') === 'true';
+    }
+    return false;
+  });
+  const [passwordError, setPasswordError] = useState('');
+
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (password === 'Vikhyat@2012') {
+      setIsAuthenticated(true);
+      sessionStorage.setItem('pharmacist_authorized', 'true');
+      setPasswordError('');
+      fetchAdminData();
+    } else {
+      setPasswordError('Invalid security credentials. Access denied.');
+    }
+  };
+
+  // Search & Filtering States
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  const handleToggleOverride = (val) => {
+    localStorage.setItem('clinic_open_override', val);
+    setOpenOverride(val);
+    window.dispatchEvent(new Event('clinic-override-updated'));
+  };
+
+  useEffect(() => {
+    setIsAdminMode(initialAdminMode);
+    if (initialAdminMode && isAuthenticated) {
+      fetchAdminData();
+    }
+  }, [initialAdminMode, isAuthenticated]);
+
+  // Reset filters on tab switch
+  useEffect(() => {
+    setSearchTerm('');
+    setStatusFilter('ALL');
+  }, [adminTab]);
+
+  // CSV Export Engine
+  const handleExportCSV = () => {
+    let headers = [];
+    let rows = [];
+    let filename = '';
+
+    if (adminTab === 'orders') {
+      headers = ['Customer Name', 'Phone', 'Email', 'Address', 'Ordered Remedies', 'Total Price', 'Status', 'Ordered On'];
+      rows = filteredOrders.map(o => [
+        o.customer_name,
+        o.phone,
+        o.email,
+        o.address?.replace(/"/g, '""'),
+        o.medicines_list?.replace(/\n/g, ' | ').replace(/"/g, '""'),
+        o.total_price,
+        o.lead_status || 'Pending',
+        o.created_at ? new Date(o.created_at).toLocaleString('en-IN') : ''
+      ]);
+      filename = `Retail_Orders_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (adminTab === 'appointments') {
+      headers = ['Patient Name', 'Patient Phone', 'Appointment Date', 'Time Slot', 'Status', 'Registered On'];
+      rows = filteredAppointments.map(a => [
+        a.patient_name,
+        a.patient_phone,
+        a.appointment_date,
+        a.time_slot,
+        a.status || (a.cancelled ? 'CANCELLED' : 'Booked'),
+        a.created_at ? new Date(a.created_at).toLocaleString('en-IN') : ''
+      ]);
+      filename = `Consultations_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (adminTab === 'b2b') {
+      headers = ['Representative Name', 'Company Name', 'Phone', 'Email', 'Estimated Quantity', 'Requirements Specifications', 'Submitted On'];
+      rows = filteredB2B.map(q => [
+        q.client_name,
+        q.company_name,
+        q.phone,
+        q.email,
+        q.estimated_quantity,
+        q.requirements_text?.replace(/\n/g, ' | ').replace(/"/g, '""'),
+        q.created_at ? new Date(q.created_at).toLocaleString('en-IN') : ''
+      ]);
+      filename = `Wholesale_Queries_${new Date().toISOString().split('T')[0]}.csv`;
+    }
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(r => r.map(val => `"${(val || '').toString().replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Admin Data Fetcher
+  const fetchAdminData = async () => {
+    setLoadingAdminData(true);
+    try {
+      let orders = [];
+      let appointments = [];
+      let b2bQueries = [];
+      
+      if (isFirebaseConfigured) {
+        // Query Firestore for all retail orders
+        const ordersSnapshot = await getDocs(collection(db, 'retail_orders'));
+        ordersSnapshot.forEach((docSnap) => {
+          orders.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        
+        // Query Firestore for all clinic appointments
+        const aptsSnapshot = await getDocs(collection(db, 'clinic_appointments'));
+        aptsSnapshot.forEach((docSnap) => {
+          appointments.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        // Query Firestore for all B2B queries
+        const b2bSnapshot = await getDocs(collection(db, 'bulk_orders'));
+        b2bSnapshot.forEach((docSnap) => {
+          b2bQueries.push({ id: docSnap.id, ...docSnap.data() });
+        });
+      } else {
+        orders = await mockDb.getAllRetailOrders();
+        appointments = await mockDb.getAllAppointments();
+        b2bQueries = await mockDb.getAllBulkOrders();
+      }
+      
+      // Sort: newest first
+      orders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      
+      // Sort appointments by appointment date descending
+      appointments.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+
+      // Sort B2B queries by created_at descending
+      b2bQueries.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      
+      setAllOrders(orders);
+      setAllAppointments(appointments);
+      setAllB2BQueries(b2bQueries);
+    } catch (err) {
+      console.error('Failed to load admin logs:', err);
+    } finally {
+      setLoadingAdminData(false);
+    }
+  };
+
+  // Status updaters for Retail Orders
+  const handleUpdateOrderStatus = async (order, newStatus) => {
+    setAdminActionLoadingId(order.id);
+    try {
+      if (isFirebaseConfigured) {
+        await updateDoc(doc(db, 'retail_orders', order.id), {
+          lead_status: newStatus
+        });
+      } else {
+        await mockDb.updateRetailOrderStatus(order.id, newStatus);
+      }
+      
+      // Sync with Google Sheets (fire-and-forget)
+      fetch('/api/updateSheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'update_order_status',
+          data: {
+            phone: order.phone,
+            timestamp: order.created_at ? new Date(order.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '',
+            status: newStatus
+          }
+        })
+      }).catch(e => console.error('Sheets status sync failed:', e));
+      
+      // Update local state immediately
+      setAllOrders(prev => prev.map(ord => ord.id === order.id ? { ...ord, lead_status: newStatus } : ord));
+    } catch (err) {
+      console.error('Failed to update status:', err);
+    } finally {
+      setAdminActionLoadingId(null);
+    }
+  };
+
+  // Status updaters for Appointments
+  const handleUpdateAppointmentStatus = async (apt, newStatus) => {
+    setAdminActionLoadingId(apt.id);
+    try {
+      if (isFirebaseConfigured) {
+        await updateDoc(doc(db, 'clinic_appointments', apt.id), {
+          status: newStatus,
+          cancelled: newStatus === 'CANCELLED'
+        });
+      } else {
+        await mockDb.updateAppointmentStatus(apt.id, newStatus);
+      }
+      
+      // Sync with Google Sheets (fire-and-forget)
+      if (newStatus === 'CANCELLED') {
+        fetch('/api/updateSheets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'cancel_appointment',
+            data: {
+              patient_phone: apt.patient_phone,
+              appointment_date: apt.appointment_date,
+              time_slot: apt.time_slot
+            }
+          })
+        }).catch(e => console.error('Sheets cancel sync failed:', e));
+      }
+      
+      // Update local state immediately
+      setAllAppointments(prev => prev.map(a => a.id === apt.id ? { ...a, status: newStatus, cancelled: newStatus === 'CANCELLED' } : a));
+    } catch (err) {
+      console.error('Failed to update appointment:', err);
+    } finally {
+      setAdminActionLoadingId(null);
+    }
+  };
 
   // Feature B: Search by phone number
   const handlePhoneSearch = async (e) => {
@@ -24,6 +263,16 @@ export default function MyBookings({ onBackToHome }) {
     const formattedSearch = searchPhone.trim();
     if (!formattedSearch) {
       setSearchError('Please enter a phone number to search.');
+      return;
+    }
+
+    // Stealth passcode check for Clinic Administration mode
+    if (formattedSearch.toLowerCase() === 'admin94313') {
+      setIsAdminMode(true);
+      setIsAuthenticated(true);
+      sessionStorage.setItem('pharmacist_authorized', 'true');
+      fetchAdminData();
+      setSearchPhone('');
       return;
     }
 
@@ -264,8 +513,584 @@ export default function MyBookings({ onBackToHome }) {
     );
   };
 
+  // Filtered Lists for Admin Dashboard
+  const filteredOrders = allOrders.filter(order => {
+    const matchesSearch = 
+      (order.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.phone || '').includes(searchTerm) ||
+      (order.address || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'ALL' || (order.lead_status || 'Pending').toUpperCase() === statusFilter.toUpperCase();
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredAppointments = allAppointments.filter(apt => {
+    const matchesSearch = 
+      (apt.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (apt.patient_phone || '').includes(searchTerm) ||
+      (apt.time_slot || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = 
+      statusFilter === 'ALL' || 
+      (statusFilter === 'CANCELLED' && (apt.status === 'CANCELLED' || apt.cancelled)) ||
+      (statusFilter === 'ACTIVE' && apt.status !== 'CANCELLED' && !apt.cancelled);
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredB2B = allB2BQueries.filter(q => {
+    const matchesSearch = 
+      (q.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (q.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (q.phone || '').includes(searchTerm) ||
+      (q.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (q.requirements_text || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
+  // --- DETACHED SECURE LOCK SCREEN (DARK THEME) ---
+  if (isAdminMode && !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center px-6 py-12 relative overflow-hidden animate-fade-in font-sans">
+        {/* Glow effect */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        {/* Smaller, subtle return link */}
+        <button
+          type="button"
+          onClick={onBackToHome}
+          className="absolute top-6 left-6 text-slate-500 hover:text-slate-350 text-3xs font-extrabold uppercase tracking-widest transition-colors cursor-pointer"
+        >
+          ← Return to Clinic
+        </button>
+
+        {/* Secure login card */}
+        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden text-left space-y-6">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-cyan-500"></div>
+
+          <div className="text-center space-y-2.5">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-[#2DD4BF] mb-1.5 shadow-md">
+              <Lock className="w-5 h-5" />
+            </div>
+            <h3 className="text-xl font-extrabold text-white tracking-tight uppercase font-display">
+              Protected Admin Space
+            </h3>
+            <p className="text-2xs text-slate-400 uppercase tracking-wider font-semibold">
+              Authorization Required for Database Logs
+            </p>
+          </div>
+
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="admin-password" className="block text-3xs font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">
+                Enter Security Key
+              </label>
+              <input
+                type="password"
+                id="admin-password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError('');
+                }}
+                placeholder="••••••••••••••"
+                className="block w-full px-3.5 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 transition-all shadow-sm font-mono text-center tracking-widest"
+              />
+            </div>
+
+            {passwordError && (
+              <div className="p-3 bg-rose-950/40 border border-rose-900/50 text-rose-350 text-2xs font-semibold rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{passwordError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full btn-neon-emerald py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all border-0"
+            >
+              Unlock Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // --- DETACHED DARK ADMIN TERMINAL LAYOUT (DARK THEME) ---
+  if (isAdminMode && isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans animate-fade-in relative z-0 pb-16">
+        {/* Full-width techy admin header */}
+        <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
+            {/* Console Branding */}
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-[#115E59] flex items-center justify-center text-white shadow-lg shadow-teal-500/10">
+                <Lock className="w-4.5 h-4.5 text-white" />
+              </div>
+              <div>
+                <span className="font-display font-black text-sm sm:text-base tracking-widest text-white uppercase flex items-center gap-1.5">
+                  KHH <span className="text-teal-400 font-extrabold">PHARMACIST PORTAL</span>
+                </span>
+                <span className="block text-[8px] font-extrabold uppercase tracking-widest text-slate-400 -mt-0.5">
+                  Logistics &amp; Command Console
+                </span>
+              </div>
+            </div>
+
+            {/* Admin Stats & Metrics Bar */}
+            <div className="hidden lg:flex items-center gap-4 text-[10px] font-bold text-slate-400">
+              <span className="px-3 py-1 bg-slate-800 border border-slate-700/55 rounded-full flex items-center gap-1.5">
+                📦 Orders <strong className="text-teal-450">{allOrders.length}</strong>
+              </span>
+              <span className="px-3 py-1 bg-slate-800 border border-slate-700/55 rounded-full flex items-center gap-1.5">
+                📅 Consultations <strong className="text-teal-450">{allAppointments.length}</strong>
+              </span>
+              <span className="px-3 py-1 bg-slate-800 border border-slate-700/55 rounded-full flex items-center gap-1.5">
+                🏢 B2B Inquiries <strong className="text-teal-450">{allB2BQueries.length}</strong>
+              </span>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-4">
+              {/* Database Sync Status */}
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-slate-800/60 border border-slate-750/50 rounded-full">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                </span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Firebase Sync</span>
+              </div>
+
+              {/* Lock Session */}
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.removeItem('pharmacist_authorized');
+                  setIsAuthenticated(false);
+                }}
+                className="py-1.5 px-3.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-450 border border-rose-500/20 rounded-xl text-3xs font-extrabold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1 shadow-sm font-sans"
+              >
+                <Lock className="w-2.5 h-2.5" />
+                Lock Portal
+              </button>
+
+              {/* Smaller, Hidden Portal Return Link */}
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.removeItem('pharmacist_authorized');
+                  setIsAuthenticated(false);
+                  onBackToHome();
+                }}
+                className="text-slate-500 hover:text-slate-350 text-3xs font-extrabold uppercase tracking-widest transition-all cursor-pointer border-l border-slate-800 pl-4 h-5 flex items-center font-sans bg-transparent border-t-0 border-r-0 border-b-0"
+              >
+                Exit Portal
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Dashboard Main Area */}
+        <main className="max-w-7xl mx-auto px-6 py-10 space-y-8 text-left">
+          
+          {/* Section Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black text-white tracking-tight uppercase">
+                Systems Dashboard
+              </h2>
+              <p className="text-2xs text-slate-400 uppercase tracking-widest font-semibold">
+                Manage operational status, client orders, and wholesale inquiries.
+              </p>
+            </div>
+
+            {/* Overrides integrated directly on the right */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-teal-400 shrink-0" />
+                <div>
+                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Clinic Override</span>
+                  <span className="block text-[8px] text-slate-500 uppercase tracking-widest -mt-0.5">Force portal open status</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleToggleOverride('auto')}
+                  className={`py-1.5 px-3 rounded-lg text-3xs font-black uppercase tracking-widest transition-all border cursor-pointer ${
+                    openOverride === 'auto'
+                      ? 'bg-teal-600 border-teal-500 text-white shadow-md shadow-teal-500/10'
+                      : 'bg-slate-800 border-slate-700 text-slate-405 hover:text-slate-205'
+                  }`}
+                >
+                  ⏱️ Auto
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleOverride('open')}
+                  className={`py-1.5 px-3 rounded-lg text-3xs font-black uppercase tracking-widest transition-all border cursor-pointer ${
+                    openOverride === 'open'
+                      ? 'bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-500/10'
+                      : 'bg-slate-800 border-slate-700 text-slate-405 hover:text-emerald-405'
+                  }`}
+                >
+                  🟢 Open
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleOverride('closed')}
+                  className={`py-1.5 px-3 rounded-lg text-3xs font-black uppercase tracking-widest transition-all border cursor-pointer ${
+                    openOverride === 'closed'
+                      ? 'bg-rose-600 border-rose-500 text-white shadow-md shadow-rose-500/10'
+                      : 'bg-slate-800 border-slate-700 text-slate-450 hover:text-rose-450'
+                  }`}
+                >
+                  🔴 Closed
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Console Tabs */}
+          <div className="flex bg-slate-900 p-1.5 rounded-xl border border-slate-800 max-w-xl mx-auto shadow-inner">
+            <button
+              onClick={() => setAdminTab('orders')}
+              className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer text-center border-0 ${
+                adminTab === 'orders'
+                  ? 'bg-teal-600 text-white shadow-md font-extrabold'
+                  : 'text-slate-400 hover:text-slate-200 bg-transparent'
+              }`}
+            >
+              📦 Retail Orders ({allOrders.length})
+            </button>
+            <button
+              onClick={() => setAdminTab('appointments')}
+              className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer text-center border-0 ${
+                adminTab === 'appointments'
+                  ? 'bg-teal-600 text-white shadow-md font-extrabold'
+                  : 'text-slate-400 hover:text-slate-200 bg-transparent'
+              }`}
+            >
+              📅 Consultations ({allAppointments.length})
+            </button>
+            <button
+              onClick={() => setAdminTab('b2b')}
+              className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer text-center border-0 ${
+                adminTab === 'b2b'
+                  ? 'bg-teal-600 text-white shadow-md font-extrabold'
+                  : 'text-slate-400 hover:text-slate-200 bg-transparent'
+              }`}
+            >
+              🏢 Wholesale Queries ({allB2BQueries.length})
+            </button>
+          </div>
+
+          {/* Filters Panel */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 max-w-4xl mx-auto items-stretch md:items-center">
+            {/* Search Input */}
+            <div className="flex-1 relative">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <Search className="w-4 h-4" />
+              </span>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={
+                  adminTab === 'orders' ? "Search orders by name, phone, or address..." :
+                  adminTab === 'appointments' ? "Search appointments by patient name or phone..." :
+                  "Search wholesale queries by name, company, email, or remedies..."
+                }
+                className="block w-full pl-10 pr-3 py-2 text-xs bg-slate-950 border border-slate-850 rounded-xl text-slate-100 placeholder-slate-550 focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all shadow-inner"
+              />
+            </div>
+
+            {/* Status Dropdown Filter */}
+            {adminTab !== 'b2b' && (
+              <div className="w-full md:w-48 shrink-0">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="block w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-slate-350 focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all shadow-inner font-bold"
+                >
+                  <option value="ALL" className="bg-slate-900">📋 Show All Statuses</option>
+                  {adminTab === 'orders' ? (
+                    <>
+                      <option value="PENDING" className="bg-slate-900">⏳ Pending Leads</option>
+                      <option value="SHIPPED" className="bg-slate-900">🚚 Shipped Orders</option>
+                      <option value="COMPLETED" className="bg-slate-900">✅ Completed Orders</option>
+                      <option value="CANCELLED" className="bg-slate-900">❌ Cancelled Orders</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="ACTIVE" className="bg-slate-900">🟢 Active Bookings</option>
+                      <option value="CANCELLED" className="bg-slate-900">🔴 Cancelled Bookings</option>
+                    </>
+                  )}
+                </select>
+              </div>
+            )}
+
+            {/* Export CSV Button */}
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="py-2 px-4.5 bg-slate-800 border border-slate-750 hover:border-teal-500 hover:text-teal-400 text-slate-300 rounded-xl text-2xs font-extrabold uppercase tracking-widest transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+            >
+              📥 Export CSV
+            </button>
+          </div>
+
+          {/* Database Logs display */}
+          {loadingAdminData ? (
+            <div className="py-24 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
+              <p className="text-2xs font-extrabold text-slate-500 uppercase tracking-widest">Synchronizing Command Database...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {adminTab === 'orders' ? (
+                // Orders grid view
+                filteredOrders.length === 0 ? (
+                  <div className="p-12 bg-slate-900 border border-slate-800 rounded-2xl text-center space-y-1 shadow-sm">
+                    <p className="text-sm font-bold text-slate-300">No Retail Orders Logged Yet</p>
+                    <p className="text-xs text-slate-500">Newly placed retail orders will appear here automatically.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredOrders.map((order) => {
+                      const isUpdating = adminActionLoadingId === order.id;
+                      const status = order.lead_status || 'Pending';
+                      
+                      return (
+                        <div key={order.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left">
+                          <div className={`absolute top-0 left-0 right-0 h-1 ${
+                            status === 'Completed' ? 'bg-emerald-500' :
+                            status === 'Shipped' ? 'bg-amber-500' :
+                            status === 'Cancelled' ? 'bg-rose-500' : 'bg-teal-500'
+                          }`}></div>
+
+                          <div className="space-y-3.5">
+                            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                              <div>
+                                <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">Customer Name</span>
+                                <span className="font-extrabold text-white text-sm">{order.customer_name}</span>
+                              </div>
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                status === 'Completed' ? 'bg-emerald-950/40 border-emerald-900/50 text-emerald-400' :
+                                status === 'Shipped' ? 'bg-amber-950/40 border-amber-900/50 text-amber-400' :
+                                status === 'Cancelled' ? 'bg-rose-950/40 border-rose-900/50 text-rose-400' :
+                                'bg-teal-950/40 border-teal-900/50 text-teal-400 animate-pulse'
+                              }`}>
+                                {status}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3.5 text-2xs leading-relaxed">
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Registered Phone</span>
+                                <a href={`tel:${order.phone}`} className="font-bold text-teal-400 hover:underline">{order.phone}</a>
+                              </div>
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Ordered On</span>
+                                <span className="font-semibold text-slate-350">
+                                  {order.created_at ? new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                                </span>
+                              </div>
+                              <div className="col-span-2">
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Delivery Address</span>
+                                <span className="font-semibold text-slate-350">{order.address}</span>
+                              </div>
+                              <div className="col-span-2">
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Remedies Breakdown</span>
+                                <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 font-mono text-[10px] text-slate-300 whitespace-pre-wrap leading-tight mt-1">
+                                  {order.medicines_list}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="border-t border-slate-800 pt-4 mt-2 space-y-3">
+                            <div className="flex justify-between items-center text-xs font-bold text-slate-350">
+                              <span>Total Price:</span>
+                              <span className="text-teal-400 text-sm">₹{order.total_price}</span>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() => handleUpdateOrderStatus(order, 'Shipped')}
+                                className="flex-1 py-1.5 px-2 bg-amber-950/20 hover:bg-amber-950/40 text-amber-405 border border-amber-900/30 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                🚚 Ship
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() => handleUpdateOrderStatus(order, 'Completed')}
+                                className="flex-1 py-1.5 px-2 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-455 border border-emerald-900/30 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                ✅ Complete
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() => handleUpdateOrderStatus(order, 'Cancelled')}
+                                className="flex-1 py-1.5 px-2 bg-rose-950/20 hover:bg-rose-950/40 text-rose-455 border border-rose-900/30 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                ❌ Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : adminTab === 'appointments' ? (
+                // Consultations grid view
+                filteredAppointments.length === 0 ? (
+                  <div className="p-12 bg-slate-900 border border-slate-800 rounded-2xl text-center space-y-1 shadow-sm">
+                    <p className="text-sm font-bold text-slate-300">No Patient Appointments Scheduled</p>
+                    <p className="text-xs text-slate-500">Newly booked consultation slots will appear here in real-time.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredAppointments.map((apt) => {
+                      const isUpdating = adminActionLoadingId === apt.id;
+                      const isCancelled = apt.status === 'CANCELLED' || apt.cancelled === true;
+                      
+                      return (
+                        <div key={apt.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left">
+                          <div className={`absolute top-0 left-0 right-0 h-1 ${
+                            isCancelled ? 'bg-rose-500' : 'bg-teal-500'
+                          }`}></div>
+
+                          <div className="space-y-3.5">
+                            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                              <div>
+                                <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">Patient Name</span>
+                                <span className="font-extrabold text-white text-sm">{apt.patient_name}</span>
+                              </div>
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                isCancelled ? 'bg-rose-950/40 border-rose-900/50 text-rose-400' : 'bg-teal-950/40 border-teal-900/50 text-teal-400'
+                              }`}>
+                                {isCancelled ? 'Cancelled' : 'Active'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3.5 text-2xs leading-relaxed">
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Contact Phone</span>
+                                <a href={`tel:${apt.patient_phone}`} className="font-bold text-teal-400 hover:underline">{apt.patient_phone}</a>
+                              </div>
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Consultation Date</span>
+                                <span className="font-bold text-slate-300">{apt.appointment_date}</span>
+                              </div>
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Time Slot</span>
+                                <span className="font-extrabold text-teal-450 bg-teal-950/50 px-2 py-0.5 rounded border border-teal-900/50">{apt.time_slot}</span>
+                              </div>
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Registered On</span>
+                                <span className="font-semibold text-slate-400">
+                                  {apt.created_at ? new Date(apt.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {!isCancelled && (
+                            <div className="border-t border-slate-800 pt-4 mt-2">
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() => handleUpdateAppointmentStatus(apt, 'CANCELLED')}
+                                className="w-full py-2 px-3 border border-rose-900/40 hover:bg-rose-950/20 text-rose-400 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              >
+                                ❌ Cancel Appointment Slot
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                // Wholesale queries
+                filteredB2B.length === 0 ? (
+                  <div className="p-12 bg-slate-900 border border-slate-800 rounded-2xl text-center space-y-1 shadow-sm">
+                    <p className="text-sm font-bold text-slate-300">No Wholesale Inquiries Logged Yet</p>
+                    <p className="text-xs text-slate-500">Newly submitted B2B distribution queries will appear here automatically.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredB2B.map((query) => {
+                      return (
+                        <div key={query.id || `${query.created_at}`} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left">
+                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-cyan-500"></div>
+
+                          <div className="space-y-3.5">
+                            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                              <div>
+                                <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">Representative Name</span>
+                                <span className="font-extrabold text-white text-sm">{query.client_name}</span>
+                              </div>
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-teal-950/40 border-teal-900/50 text-teal-400">
+                                B2B Inquiry
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3.5 text-2xs leading-relaxed">
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Company Name</span>
+                                <span className="font-bold text-slate-300">{query.company_name}</span>
+                              </div>
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Submitted On</span>
+                                <span className="font-semibold text-slate-400">
+                                  {query.created_at ? new Date(query.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Contact Phone</span>
+                                <a href={`tel:${query.phone}`} className="font-bold text-teal-400 hover:underline">{query.phone}</a>
+                              </div>
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Contact Email</span>
+                                <a href={`mailto:${query.email}`} className="font-bold text-teal-400 hover:underline break-all">{query.email}</a>
+                              </div>
+                              <div className="col-span-2">
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Estimated Required Volume</span>
+                                <span className="font-extrabold text-slate-100 bg-amber-950/40 px-2.5 py-0.5 rounded border border-amber-900/30 text-[10px] inline-block mt-0.5">{query.estimated_quantity} Units</span>
+                              </div>
+                              <div className="col-span-2">
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">Remedy Requirements</span>
+                                <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 font-mono text-[10px] text-slate-300 whitespace-pre-wrap leading-tight mt-1">
+                                  {query.requirements_text}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+        </main>
+      </div>
+    );
+  }
+
+  // --- RENDER MAIN COMPONENT FOR PUBLIC LOOKUP VIEW ONLY ---
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 space-y-12 text-slate-800">
+    <div className="max-w-5xl mx-auto px-6 py-12 space-y-8 text-slate-800 animate-fade-in text-left">
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -282,88 +1107,91 @@ export default function MyBookings({ onBackToHome }) {
         </span>
       </div>
 
-      <div className="text-center max-w-2xl mx-auto space-y-3">
-        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">My Active Appointments</h2>
-        <p className="text-sm text-slate-500 leading-relaxed">
-          Look up your bookings by phone number to view proof or cancel your appointment.
-        </p>
-      </div>
-
-      {/* Phone Lookup — full width, centred */}
-      <div className="max-w-xl mx-auto bg-white border border-[#EAE5DC] rounded-2xl p-6 shadow-sm space-y-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-[#115E59]"></div>
-
-        <div className="space-y-1">
-          <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-widest flex items-center gap-2">
-            <Search className="w-4 h-4 text-[#115E59]" />
-            Phone Number Lookup
-          </h3>
-          <p className="text-2xs text-slate-400">Enter your registered phone number to find and manage your appointments.</p>
+      {/* Lookup Mode Body */}
+      <div className="space-y-12 animate-fade-in">
+        <div className="text-center max-w-2xl mx-auto space-y-3">
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">My Active Appointments</h2>
+          <p className="text-sm text-slate-500 leading-relaxed">
+            Look up your bookings by phone number to view proof or cancel your appointment.
+          </p>
         </div>
 
-        <form onSubmit={handlePhoneSearch} className="space-y-4">
-          <div>
-            <label htmlFor="lookup-phone" className="block text-3xs font-extrabold text-slate-500 uppercase tracking-widest mb-1.5">
-              Registered Phone Number
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <Phone className="w-4 h-4" />
-              </span>
-              <input
-                type="tel"
-                id="lookup-phone"
-                value={searchPhone}
-                onChange={(e) => {
-                  setSearchPhone(e.target.value);
-                  if (searchError) setSearchError('');
-                }}
-                placeholder="e.g. 9431360455"
-                className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#115E59]/40 focus:border-[#115E59] transition-all shadow-sm"
-              />
-            </div>
+        {/* Phone Lookup card */}
+        <div className="max-w-xl mx-auto bg-white border border-[#EAE5DC] rounded-2xl p-6 shadow-sm space-y-6 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#115E59]"></div>
+
+          <div className="space-y-1">
+            <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-widest flex items-center gap-2">
+              <Search className="w-4 h-4 text-[#115E59]" />
+              Phone Number Lookup
+            </h3>
+            <p className="text-2xs text-slate-400">Enter your registered phone number to find and manage your appointments.</p>
           </div>
 
-          {searchError && (
-            <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 text-2xs font-semibold rounded-xl flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-              <span>{searchError}</span>
+          <form onSubmit={handlePhoneSearch} className="space-y-4">
+            <div>
+              <label htmlFor="lookup-phone" className="block text-3xs font-extrabold text-slate-500 uppercase tracking-widest mb-1.5">
+                Registered Phone Number
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-450">
+                  <Phone className="w-4 h-4" />
+                </span>
+                <input
+                  type="tel"
+                  id="lookup-phone"
+                  value={searchPhone}
+                  onChange={(e) => {
+                    setSearchPhone(e.target.value);
+                    if (searchError) setSearchError('');
+                  }}
+                  placeholder="e.g. 9431360455"
+                  className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#115E59]/40 focus:border-[#115E59] transition-all shadow-sm"
+                />
+              </div>
+            </div>
+
+            {searchError && (
+              <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 text-2xs font-semibold rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>{searchError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={searching}
+              className="w-full btn-neon-emerald py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {searching ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />Searching Records...</>
+              ) : (
+                <><Search className="w-4 h-4" />Find My Appointments</>
+              )}
+            </button>
+          </form>
+
+          {/* Search Results */}
+          {searchResults !== null && (
+            <div className="pt-4 border-t border-slate-100 space-y-4">
+              <h4 className="text-2xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                {searchResults.length === 0 ? 'No appointments found' : `${searchResults.length} appointment${searchResults.length > 1 ? 's' : ''} found`}
+              </h4>
+
+              {searchResults.length === 0 ? (
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-center space-y-1">
+                  <p className="text-xs font-bold text-slate-700">No Appointments Found</p>
+                  <p className="text-3xs text-slate-400">Verify the phone number or try booking a new slot.</p>
+                </div>
+              ) : (
+                <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
+                  {searchResults.map(renderBookingCard)}
+                </div>
+              )}
             </div>
           )}
-
-          <button
-            type="submit"
-            disabled={searching}
-            className="w-full btn-neon-emerald py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {searching ? (
-              <><Loader2 className="w-4 h-4 animate-spin" />Searching Records...</>
-            ) : (
-              <><Search className="w-4 h-4" />Find My Appointments</>
-            )}
-          </button>
-        </form>
-
-        {/* Search Results */}
-        {searchResults !== null && (
-          <div className="pt-4 border-t border-slate-100 space-y-4">
-            <h4 className="text-2xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              {searchResults.length === 0 ? 'No appointments found' : `${searchResults.length} appointment${searchResults.length > 1 ? 's' : ''} found`}
-            </h4>
-
-            {searchResults.length === 0 ? (
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-center space-y-1">
-                <p className="text-xs font-bold text-slate-700">No Appointments Found</p>
-                <p className="text-3xs text-slate-400">Verify the phone number or try booking a new slot.</p>
-              </div>
-            ) : (
-              <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
-                {searchResults.map(renderBookingCard)}
-              </div>
-            )}
-          </div>
-        )}
+        </div>
       </div>
 
     </div>

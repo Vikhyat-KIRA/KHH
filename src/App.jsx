@@ -24,7 +24,53 @@ export default function App() {
   const [isOpenNow, setIsOpenNow] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
-  const [activeView, setActiveView] = useState('main');
+  const [activeView, setActiveView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.replace(/\/$/, "");
+      if (path === '/admin-panel' || path.endsWith('/admin-panel')) {
+        return 'admin';
+      } else if (path === '/bookings' || path.endsWith('/bookings')) {
+        return 'bookings';
+      }
+    }
+    return 'main';
+  });
+
+  // Listen to browser forward/back buttons and sync activeView
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const getCleanPath = () => {
+        return window.location.pathname.replace(/\/$/, "");
+      };
+
+      const handlePopState = () => {
+        const p = getCleanPath();
+        if (p === '/admin-panel' || p.endsWith('/admin-panel')) {
+          setActiveView('admin');
+        } else if (p === '/bookings' || p.endsWith('/bookings')) {
+          setActiveView('bookings');
+        } else {
+          setActiveView('main');
+        }
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, []);
+
+  // Synchronize activeView state to URL bar dynamically using HTML5 History API
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname.replace(/\/$/, "");
+      if (activeView === 'admin' && currentPath !== '/admin-panel') {
+        window.history.pushState({}, '', '/admin-panel');
+      } else if (activeView === 'bookings' && currentPath !== '/bookings') {
+        window.history.pushState({}, '', '/bookings');
+      } else if (activeView === 'main' && currentPath !== '') {
+        window.history.pushState({}, '', '/');
+      }
+    }
+  }, [activeView]);
 
   // Cinematic Intro Loader unmounting logic
   useEffect(() => {
@@ -58,6 +104,16 @@ export default function App() {
   // Dynamic Open Status Badge logic — Mon–Sat, 10:30 AM to 8:00 PM IST (Ranchi Time)
   useEffect(() => {
     const checkStatus = () => {
+      // 🚨 Check manual override setting from pharmacist admin portal first!
+      const override = localStorage.getItem('clinic_open_override');
+      if (override === 'open') {
+        setIsOpenNow(true);
+        return;
+      } else if (override === 'closed') {
+        setIsOpenNow(false);
+        return;
+      }
+
       try {
         const now = new Date();
         
@@ -110,7 +166,19 @@ export default function App() {
 
     checkStatus();
     const interval = setInterval(checkStatus, 60000);
-    return () => clearInterval(interval);
+
+    // Listen for manual open status override updates
+    const handleOverrideUpdate = () => {
+      checkStatus();
+    };
+    window.addEventListener('clinic-override-updated', handleOverrideUpdate);
+    window.addEventListener('storage', handleOverrideUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('clinic-override-updated', handleOverrideUpdate);
+      window.removeEventListener('storage', handleOverrideUpdate);
+    };
   }, []);
 
   const smoothScroll = (e, id) => {
@@ -143,7 +211,8 @@ export default function App() {
       <div className="bg-watermark"></div>
       
       {/* 1. PREMIUM HEADER / NAVIGATION BAR */}
-      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-[#EAE5DC] transition-all duration-300 shadow-sm relative">
+      {activeView !== 'admin' && (
+        <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-[#EAE5DC] transition-all duration-300 shadow-sm relative">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo Brand */}
           <a href="#" className="flex items-center gap-2.5 group">
@@ -278,9 +347,10 @@ export default function App() {
           </div>
         )}
       </header>
+      )}
 
-      {activeView === 'bookings' ? (
-        <MyBookings onBackToHome={() => { setActiveView('main'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+      {activeView === 'bookings' || activeView === 'admin' ? (
+        <MyBookings initialAdminMode={activeView === 'admin'} onBackToHome={() => { setActiveView('main'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
       ) : (
         <>
           {/* 2. HERO SECTION */}
