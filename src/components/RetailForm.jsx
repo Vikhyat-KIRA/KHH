@@ -83,6 +83,78 @@ export default function RetailForm() {
     }
   };
 
+  const calculateLocalDeliveryCharge = (addressStr, subtotal) => {
+    if (subtotal >= 500) return 0;
+    if (!addressStr || !addressStr.trim()) return 50;
+
+    const addr = addressStr.toLowerCase();
+    
+    // Tier 1: Very Close (~ under 3km) -> ₹30
+    if (
+      addr.includes('upper bazar') || 
+      addr.includes('lalpur') || 
+      addr.includes('circular road') || 
+      addr.includes('albert ekka') || 
+      addr.includes('main road') || 
+      addr.includes('hindpiri') ||
+      addr.includes('daily market') ||
+      addr.includes('kotwali') ||
+      addr.includes('purulia road') ||
+      addr.includes('dr. fatehullah')
+    ) {
+      return 30;
+    }
+
+    // Tier 3: Medium-Far (~ 8km - 15km) -> ₹75
+    if (
+      addr.includes('doranda') || 
+      addr.includes('hinoo') || 
+      addr.includes('birsa nagar') || 
+      addr.includes('jagannathpur') || 
+      addr.includes('hatia') || 
+      addr.includes('dhurwa') || 
+      addr.includes('namkum') || 
+      addr.includes('khelgaon') || 
+      addr.includes('pandra') || 
+      addr.includes('ratu road') ||
+      addr.includes('pisko') ||
+      addr.includes('sarmoli')
+    ) {
+      return 75;
+    }
+
+    // Tier 4: Very Far (~ above 15km) -> ₹100
+    if (
+      addr.includes('mesra') || 
+      addr.includes('bit mesra') || 
+      addr.includes('tupudana') || 
+      addr.includes('ormanjhi') || 
+      addr.includes('kanke') || 
+      addr.includes('vikas') ||
+      addr.includes('sidroll')
+    ) {
+      return 100;
+    }
+
+    // Tier 2: Close-Medium (~ 3km - 8km) -> ₹50 (Default close areas)
+    if (
+      addr.includes('kutchery') || 
+      addr.includes('morabadi') || 
+      addr.includes('bariatu') || 
+      addr.includes('kokar') || 
+      addr.includes('kantatoli') || 
+      addr.includes('bahubazar') || 
+      addr.includes('kadru') ||
+      addr.includes('harmu') ||
+      addr.includes('ashok nagar') ||
+      addr.includes('argora')
+    ) {
+      return 50;
+    }
+
+    return 50; // default standard delivery charge
+  };
+
   const validate = () => {
     const errors = {};
     if (!name.trim()) errors.name = t('forms.valName');
@@ -133,7 +205,10 @@ export default function RetailForm() {
       const res = await fetch('/api/estimatePrice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: medicineItems })
+        body: JSON.stringify({ 
+          items: medicineItems,
+          address: address.trim()
+        })
       });
 
       const data = await res.json();
@@ -165,7 +240,10 @@ export default function RetailForm() {
         const res = await fetch('/api/estimatePrice', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: medicineItems })
+          body: JSON.stringify({ 
+            items: medicineItems,
+            address: address.trim()
+          })
         });
         const data = await res.json();
         if (res.ok && data.success) {
@@ -185,11 +263,12 @@ export default function RetailForm() {
           return { name: `${itm.name} ${potency} (${size})`, quantity: itm.quantity, estimatedUnitPrice: 120, totalPrice: total };
         });
 
+        const localDelCharge = calculateLocalDeliveryCharge(address.trim(), fallbackSubtotal);
         currentEstimate = {
           subtotal: fallbackSubtotal,
           discount: Math.round(fallbackSubtotal * 0.10),
-          deliveryCharge: fallbackSubtotal >= 500 ? 0 : 50,
-          grandTotal: fallbackSubtotal - Math.round(fallbackSubtotal * 0.10) + (fallbackSubtotal >= 500 ? 0 : 50),
+          deliveryCharge: localDelCharge,
+          grandTotal: fallbackSubtotal - Math.round(fallbackSubtotal * 0.10) + localDelCharge,
           items: fallbackItems
         };
       }

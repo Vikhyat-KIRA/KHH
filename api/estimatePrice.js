@@ -15,6 +15,78 @@
  * to a smart local pricing engine.
  */
 
+function estimateDeliveryCharge(addressStr, subtotal) {
+  if (subtotal >= 500) return 0;
+  if (!addressStr || !addressStr.trim()) return 50;
+
+  const addr = addressStr.toLowerCase();
+  
+  // Tier 1: Very Close (~ under 3km) -> ₹30
+  if (
+    addr.includes('upper bazar') || 
+    addr.includes('lalpur') || 
+    addr.includes('circular road') || 
+    addr.includes('albert ekka') || 
+    addr.includes('main road') || 
+    addr.includes('hindpiri') ||
+    addr.includes('daily market') ||
+    addr.includes('kotwali') ||
+    addr.includes('purulia road') ||
+    addr.includes('dr. fatehullah')
+  ) {
+    return 30;
+  }
+
+  // Tier 3: Medium-Far (~ 8km - 15km) -> ₹75
+  if (
+    addr.includes('doranda') || 
+    addr.includes('hinoo') || 
+    addr.includes('birsa nagar') || 
+    addr.includes('jagannathpur') || 
+    addr.includes('hatia') || 
+    addr.includes('dhurwa') || 
+    addr.includes('namkum') || 
+    addr.includes('khelgaon') || 
+    addr.includes('pandra') || 
+    addr.includes('ratu road') ||
+    addr.includes('pisko') ||
+    addr.includes('sarmoli')
+  ) {
+    return 75;
+  }
+
+  // Tier 4: Very Far (~ above 15km) -> ₹100
+  if (
+    addr.includes('mesra') || 
+    addr.includes('bit mesra') || 
+    addr.includes('tupudana') || 
+    addr.includes('ormanjhi') || 
+    addr.includes('kanke') || 
+    addr.includes('vikas') ||
+    addr.includes('sidroll')
+  ) {
+    return 100;
+  }
+
+  // Tier 2: Close-Medium (~ 3km - 8km) -> ₹50 (Default close areas)
+  if (
+    addr.includes('kutchery') || 
+    addr.includes('morabadi') || 
+    addr.includes('bariatu') || 
+    addr.includes('kokar') || 
+    addr.includes('kantatoli') || 
+    addr.includes('bahubazar') || 
+    addr.includes('kadru') ||
+    addr.includes('harmu') ||
+    addr.includes('ashok nagar') ||
+    addr.includes('argora')
+  ) {
+    return 50;
+  }
+
+  return 50; // default standard delivery charge
+}
+
 export default async function handler(req, res) {
   // Only allow POST
   if (req.method !== 'POST') {
@@ -22,7 +94,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { medicines, items } = req.body;
+    const { medicines, items, address } = req.body;
 
     // Check if we have either structured items or raw medicines text
     const hasItems = Array.isArray(items) && items.length > 0;
@@ -47,6 +119,7 @@ export default async function handler(req, res) {
         const prompt = `You are a professional homeopathic pharmacist and price estimator for Kanchan Homoeo Hall in Ranchi, Jharkhand, India.
 Given the customer's request:
 ${inputDescription}
+Customer's delivery address (if provided): "${address || 'Not Provided'}"
 
 Estimate realistic retail prices in Indian Rupees (INR) for each medicine.
 Homeopathic pricing guidelines:
@@ -68,7 +141,17 @@ Homeopathic pricing guidelines:
 Perform the following calculations:
 1. Subtotal: Sum of all medicine prices.
 2. Discount: Exactly 10% of the medicine subtotal.
-3. Delivery Charge: ₹50. However, if the subtotal is ₹500 or more, the delivery charge is ₹0 (Free delivery).
+3. Delivery Charge:
+   - If Subtotal is ₹500 or more: ₹0 (Free delivery!).
+   - If Subtotal is under ₹500:
+     - If the customer's address is not provided or is blank, default to ₹50.
+     - If the address is provided, estimate the approximate road distance in km from Upper Bazar, Ranchi to that address.
+     - Apply this distance-based dynamic pricing for delivery:
+       - Under 3 km: ₹30
+       - 3 km to 8 km: ₹50
+       - 8 km to 15 km: ₹75
+       - Above 15 km: ₹100
+       - If the address is outside Ranchi city limits, explain and set a plausible shipping rate (e.g. ₹100).
 4. Grand Total: Subtotal - Discount + Delivery Charge.
 
 Return your response ONLY as a JSON object, with no markdown formatting or extra text. The structure MUST be exactly:
@@ -86,7 +169,7 @@ Return your response ONLY as a JSON object, with no markdown formatting or extra
   "discount": 24,
   "deliveryCharge": 50,
   "grandTotal": 266,
-  "explanation": "Calculated based on standard 30ml homeopathic dilution rates."
+  "explanation": "Calculated based on standard 30ml homeopathic dilution rates and distance-based delivery charge."
 }`;
 
         const apiRes = await fetch(
@@ -235,7 +318,7 @@ Return your response ONLY as a JSON object, with no markdown formatting or extra
 
     // Calculations based on requirements
     const discount = Math.round(subtotal * 0.10); // Exactly 10% discount
-    const deliveryCharge = subtotal >= 500 ? 0 : 50; // Free delivery above 500
+    const deliveryCharge = estimateDeliveryCharge(address, subtotal);
     const grandTotal = subtotal - discount + deliveryCharge;
 
     console.log('✅ Local price estimation completed.');
