@@ -266,4 +266,9 @@
   pointer-events: all;
 }
 
+/* Custom Global Smooth Scroll Target Offset for Sticky Header */
+section[id] {
+  scroll-margin-top: 6rem; /* 5rem for the h-20 header + 1rem of elegant breathing space */
+}
+
 
