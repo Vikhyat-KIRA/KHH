@@ -100,8 +100,7 @@ export const translations = {
     },
     footer: {
       rights: "© {year} Kanchan Homoeo Hall, Ranchi. All rights reserved.",
-      contact: "Contact Us",
-      reset: "⚙️ Reset Demo (Wipe Cache)"
+      contact: "Contact Us"
     },
     forms: {
       name: "Full Customer Name",
@@ -383,8 +382,7 @@ export const translations = {
     },
     footer: {
       rights: "© {year} कंचन होम्योपैथी हॉल, रांची। सर्वाधिकार सुरक्षित।",
-      contact: "संपर्क करें",
-      reset: "⚙️ डेमो रीसेट करें (कैश साफ करें)"
+      contact: "संपर्क करें"
     },
     forms: {
       name: "ग्राहक का पूरा नाम",
