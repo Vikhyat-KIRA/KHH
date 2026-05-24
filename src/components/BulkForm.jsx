@@ -153,7 +153,7 @@ export default function BulkForm() {
               </div>
               <div>
                 <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">{t('credibility.certTitle')}</h4>
-                <p className="text-2xs text-[#64748B]">{language === 'en' ? 'All remedies sourced from AYUSH-approved manufacturers.' : 'सभी दवाएं आयुष-अनुमोदित निर्माताओं से प्राप्त की जाती हैं।'}</p>
+                <p className="text-2xs text-[#64748B]">{language === 'en' ? 'All remedies sourced from premium licensed manufacturers (SBL, Dr. Reckeweg, Adel).' : 'सभी दवाएं प्रीमियम लाइसेंस प्राप्त निर्माताओं (SBL, डॉ. रेकवेग, एडेल) से प्राप्त की जाती हैं।'}</p>
               </div>
             </div>
           </div>

@@ -748,7 +748,7 @@ export default function App() {
                         {language === 'en' ? 'Dr. Harjeet Singh' : 'डॉ. हरजीत सिंह'}
                       </h3>
                       <p className="text-[10px] font-extrabold text-[#115E59] tracking-wider uppercase leading-none">
-                        {language === 'en' ? 'B.H.M.S. (Senior Consulting Physician)' : 'बी.एच.एम.एस. (वरिष्ठ परामर्श चिकित्सक)'}
+                        {language === 'en' ? 'Senior Consulting Physician' : 'वरिष्ठ परामर्श चिकित्सक'}
                       </p>
                     </div>
                   </div>

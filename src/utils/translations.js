@@ -33,8 +33,8 @@ export const translations = {
       text: "Kanchan Homoeo Hall is a premier homoeopathic pharmacy and clinic dedicated to root-cause wellness. Located near Mahabir Chowk, we maintain an extensive, high-grade inventory of classic natural remedies and dilutions. We combine years of trusted community pharmaceutical service with dedicated afternoon consultation sessions to ensure personalized healthcare paths for every patient."
     },
     credibility: {
-      certTitle: "AYUSH & GMP Certified",
-      certText: "Every remedy stocked and dispensed at Kanchan Homoeo Hall strictly adheres to AYUSH Ministry guidelines and Good Manufacturing Practices for natural homoeopathic preparations.",
+      certTitle: "Licensed Premium Remedies",
+      certText: "We exclusively stock authentic, high-grade homoeopathic remedies licensed by world-renowned manufacturers including SBL, Dr. Reckeweg, Adel, and other trusted brands.",
       servedTitle: "5,000+ Patients Served",
       servedText: "Trusted by thousands of families across Ranchi and Jharkhand for gentle, individualized homoeopathic care targeting the root cause of health conditions.",
       ratingTitle: "4.9★ Patient Satisfaction",
@@ -45,7 +45,7 @@ export const translations = {
       title: "Mr. Rahul Kumar",
       subtitle: "Owner & Proprietor",
       p1: "Welcome to Kanchan Homoeo Hall. Since 1995, our commitment has been to provide authentic, gentle, and high-quality homoeopathic remedies to the community of Ranchi. We believe in offering access to the finest natural formulations and hosting expert consultation sessions to support your personal wellness journey.",
-      p2: "We coordinate closely with experienced consulting doctors who specialize in clinical diagnostics and root-cause homoeopathic therapies. By offering AYUSH-standardized brands alongside dedicated professional consultations, we help you find safe, gentle, and effective pathways to holistic health.",
+      p2: "We coordinate closely with experienced consulting doctors who specialize in clinical diagnostics and root-cause homoeopathic therapies. By offering pure, premium formulations from SBL, Dr. Reckeweg, and Adel alongside dedicated professional consultations, we help you find safe, gentle, and effective pathways to holistic health.",
       legacyTitle: "Established Legacy",
       legacyText: "Been in this field since 1995",
       quote: "\"We are dedicated to preserving the integrity of traditional homoeopathy, ensuring that pure remedies and expert consultations are always accessible to our community.\"",
@@ -66,7 +66,7 @@ export const translations = {
     retail: {
       badge: "Retail Home Delivery Portal",
       title: "Order Homeopathic Remedies Online",
-      subtitle: "Get genuine AYUSH-certified homeopathic dilutions, mother tinctures, and biochemic formulations delivered within 24 hours in Ranchi. Free delivery on orders above ₹500.",
+      subtitle: "Get genuine licensed homeopathic dilutions, mother tinctures, and biochemic formulations from SBL, Dr. Reckeweg, and Adel delivered within 24 hours in Ranchi. Free delivery on orders above ₹500.",
       subTitleBuy: "Buy Homeopathic Medicines",
       descBuy: "Build your customized medicine request by selecting the exact homeopathic dilution power (potency) and bottle size. Our real-time AI will ground itself with local Ranchi pricing to prepare your estimate.",
       deliveryTitle: "All Ranchi Delivery",
@@ -83,7 +83,7 @@ export const translations = {
       title: "Institutional Supply & Bulk Medicine Orders",
       subtitle: "For retail clinics, research batches, or wholesale distribution requests. Our team responds within 24 hours.",
       formTitle: "Wholesale Distribution Inquiry",
-      formDesc: "Licensed pharmacies, clinics, and bulk buyers in Jharkhand can request custom wholesale quotes. Our distribution agents will verify AYUSH credentials and contact you with custom trade discounts."
+      formDesc: "Licensed pharmacies, clinics, and bulk buyers in Jharkhand can request custom wholesale quotes. Our distribution agents will verify pharmacy/clinic licensing and contact you with custom trade discounts."
     },
     contact: {
       title: "Clinic Location & Contact Hub",
@@ -155,7 +155,7 @@ export const translations = {
     },
     bulkForm: {
       formTitle: "Wholesale Distribution Inquiry",
-      formDesc: "Licensed pharmacies, clinics, and bulk buyers in Jharkhand can request custom wholesale quotes. Our distribution agents will verify AYUSH credentials and contact you with custom trade discounts.",
+      formDesc: "Licensed pharmacies, clinics, and bulk buyers in Jharkhand can request custom wholesale quotes. Our distribution agents will verify pharmacy/clinic licensing and contact you with custom trade discounts.",
       clinicName: "Pharmacy / Institution Name",
       clinicPlaceholder: "e.g. Ranchi Homoeo Clinic",
       license: "Drug License Number (Required for trade rates)",
@@ -316,8 +316,8 @@ export const translations = {
       text: "कंचन होम्योपैथी हॉल एक प्रमुख होम्योपैथिक फार्मेसी और क्लिनिक है जो बीमारी के मूल कारण को ठीक करने के लिए समर्पित है। महावीर चौक के पास स्थित, हम उत्कृष्ट गुणवत्ता वाली प्राकृतिक दवाओं और डाइल्यूशन का एक व्यापक स्टॉक रखते हैं। हम हर मरीज के लिए व्यक्तिगत उपचार सुनिश्चित करने के लिए वर्षों की विश्वसनीय सामुदायिक सेवा को समर्पित दोपहर के परामर्श सत्रों के साथ जोड़ते हैं।"
     },
     credibility: {
-      certTitle: "आयुष और जीएमपी प्रमाणित",
-      certText: "कंचन होम्योपैथी हॉल में उपलब्ध हर दवा प्राकृतिक होम्योपैथिक तैयारियों के लिए आयुष मंत्रालय के दिशानिर्देशों और अच्छे विनिर्माण प्रथाओं (GMP) का कड़ाई से पालन करती है।",
+      certTitle: "लाइसेंस प्राप्त प्रीमियम दवाएं",
+      certText: "हम विशेष रूप से एसबीएल (SBL), डॉ. रेकवेग (Dr. Reckeweg), और एडेल (Adel) जैसे विश्व प्रसिद्ध निर्माताओं से लाइसेंस प्राप्त प्रामाणिक, उच्च श्रेणी की होम्योपैथिक दवाएं रखते हैं।",
       servedTitle: "5,000+ मरीजों की सेवा",
       servedText: "बीमारी के मूल कारण को लक्षित करने वाले सौम्य और व्यक्तिगत होम्योपैथिक उपचार के लिए रांची और झारखंड के हजारों परिवारों द्वारा विश्वसनीय।",
       ratingTitle: "4.9★ मरीज संतुष्टि",
@@ -328,7 +328,7 @@ export const translations = {
       title: "श्री राहुल कुमार",
       subtitle: "मालिक और प्रोपराइटर",
       p1: "कंचन होम्योपैथी हॉल में आपका स्वागत है। 1995 से, हमारा संकल्प रांची के समुदाय को प्रामाणिक, सौम्य और उच्च गुणवत्ता वाले होम्योपैथिक उपचार प्रदान करना रहा है। हम बेहतरीन प्राकृतिक दवाओं तक पहुंच प्रदान करने और आपके व्यक्तिगत स्वास्थ्य यात्रा का समर्थन करने के लिए विशेषज्ञ परामर्श सत्रों की मेजबानी करने में विश्वास करते हैं।",
-      p2: "हम उन अनुभवी परामर्शदाता डॉक्टरों के साथ मिलकर काम करते हैं जो नैदानिक ​​निदान और मूल-कारण होम्योपैथिक उपचार में विशेषज्ञता रखते हैं। समर्पित पेशेवर परामर्श के साथ आयुष-मानकीकृत ब्रांडों की पेशकश करके, हम आपको समग्र स्वास्थ्य के सुरक्षित, सौम्य और प्रभावी रास्ते खोजने में मदद करते हैं।",
+      p2: "हम उन अनुभवी परामर्शदाता डॉक्टरों के साथ मिलकर काम करते हैं जो नैदानिक ​​निदान और मूल-कारण होम्योपैथिक उपचार में विशेषज्ञता रखते हैं। समर्पित पेशेवर परामर्श के साथ-साथ एसबीएल (SBL), डॉ. रेकवेग (Dr. Reckeweg), और एडेल (Adel) के शुद्ध, प्रीमियम फॉर्मूलेशन की पेशकश करके, हम आपको समग्र स्वास्थ्य के सुरक्षित, सौम्य और प्रभावी रास्ते खोजने में मदद करते हैं।",
       legacyTitle: "स्थापित विरासत",
       legacyText: "1995 से इस क्षेत्र में कार्यरत",
       quote: "\"हम पारंपरिक होम्योपैथी की अखंडता को बनाए रखने के लिए समर्पित हैं, यह सुनिश्चित करते हुए कि शुद्ध दवाएं और विशेषज्ञ परामर्श हमेशा हमारे समुदाय के लिए सुलभ रहें।\"",
@@ -349,7 +349,7 @@ export const translations = {
     retail: {
       badge: "खुदरा होम डिलीवरी पोर्टल",
       title: "होम्योपैथिक दवाएं ऑनलाइन ऑर्डर करें",
-      subtitle: "रांची में 24 घंटे के भीतर वितरित आयुष-प्रमाणित होम्योपैथिक दवाओं, मदर टिंचर और बायोकेमिक दवाओं को सीधे घर पर प्राप्त करें। ₹500 से अधिक के ऑर्डर पर मुफ्त डिलीवरी।",
+      subtitle: "रांची में 24 घंटे के भीतर एसबीएल (SBL), डॉ. रेकवेग (Dr. Reckeweg), और एडेल (Adel) की लाइसेंस प्राप्त होम्योपैथिक दवाओं, मदर टिंचर और बायोकेमिक दवाओं को सीधे घर पर प्राप्त करें। ₹500 से अधिक के ऑर्डर पर मुफ्त डिलीवरी।",
       subTitleBuy: "होम्योपैथिक दवाएं खरीदें",
       descBuy: "होम्योपैथिक डाइल्यूशन पावर (पोटेंसी) और बोतल का आकार चुनकर अपनी आवश्यकताओं के अनुसार दवा का अनुरोध तैयार करें। हमारी रीयल-टाइम एआई रांची की स्थानीय कीमतों के अनुसार आपका अनुमानित बिल तैयार करेगी।",
       deliveryTitle: "पूरे रांची में डिलीवरी",
@@ -366,7 +366,7 @@ export const translations = {
       title: "संस्थागत आपूर्ति और थोक दवा ऑर्डर",
       subtitle: "खुदरा क्लीनिकों, अनुसंधान बैचों या थोक वितरण अनुरोधों के लिए। हमारी टीम 24 घंटे के भीतर जवाब देती है।",
       formTitle: "थोक वितरण पूछताछ",
-      formDesc: "झारखंड में लाइसेंस प्राप्त फार्मेसी, क्लिनिक और थोक खरीदार थोक दरों के लिए अनुरोध कर सकते हैं। हमारे वितरण एजेंट आपके आयुष क्रेडेंशियल्स को सत्यापित करेंगे और कस्टम ट्रेड छूट के साथ आपसे संपर्क करेंगे."
+      formDesc: "झारखंड में लाइसेंस प्राप्त फार्मेसी, क्लिनिक और थोक खरीदार थोक दरों के लिए अनुरोध कर सकते हैं। हमारे वितरण एजेंट आपके क्लिनिक/फार्मेसी लाइसेंस को सत्यापित करेंगे और कस्टम ट्रेड छूट के साथ आपसे संपर्क करेंगे।"
     },
     contact: {
       title: "क्लिनिक स्थान और संपर्क केंद्र",
@@ -438,7 +438,7 @@ export const translations = {
     },
     bulkForm: {
       formTitle: "थोक वितरण पूछताछ",
-      formDesc: "झारखंड में लाइसेंस प्राप्त फार्मेसी, क्लिनिक और थोक खरीदार थोक दरों के लिए अनुरोध कर सकते हैं। हमारे वितरण एजेंट आपके आयुष क्रेडेंशियल्स को सत्यापित करेंगे और कस्टम ट्रेड छूट के साथ आपसे संपर्क करेंगे.",
+      formDesc: "झारखंड में लाइसेंस प्राप्त फार्मेसी, क्लिनिक और थोक खरीदार थोक दरों के लिए अनुरोध कर सकते हैं। हमारे वितरण एजेंट आपके क्लिनिक/फार्मेसी लाइसेंस को सत्यापित करेंगे और कस्टम ट्रेड छूट के साथ आपसे संपर्क करेंगे.",
       clinicName: "फार्मेसी / संस्था का नाम",
       clinicPlaceholder: "उदा. रांची होम्योपैथी क्लिनिक",
       license: "ड्रग लाइसेंस नंबर (थोक दरों के लिए आवश्यक)",
