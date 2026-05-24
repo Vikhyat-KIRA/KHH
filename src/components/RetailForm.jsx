@@ -366,6 +366,20 @@ export default function RetailForm() {
             <p className="text-sm text-[#64748B] leading-relaxed">
               {t('retail.descBuy')}
             </p>
+
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-3 shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <span className="text-lg">🛵</span>
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-emerald-900 uppercase tracking-wider mb-0.5">
+                  {language === 'en' ? '0₹ Delivery Charge under 5km!' : '5 किमी के अंदर डिलीवरी मुफ्त!'}
+                </h4>
+                <p className="text-xs text-emerald-700 font-medium">
+                  {language === 'en' ? 'No delivery charge for orders within a 5km radius.' : '5 किलोमीटर के दायरे में आने वाले ऑर्डर के लिए कोई डिलीवरी शुल्क नहीं।'}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="mt-8 space-y-4 border-t border-[#EAE5DC] pt-6">

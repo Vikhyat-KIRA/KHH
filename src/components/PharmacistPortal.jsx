@@ -516,7 +516,7 @@ export default function PharmacistPortal() {
                     <div className="text-[10px] text-slate-500 truncate max-w-[150px]">{order.email}</div>
                   </td>
                   <td className="p-4">
-                    <div className="truncate max-w-[200px] text-slate-300" title={order.medicinesList || order.medicines}>
+                    <div className="whitespace-normal min-w-[200px] text-slate-300">
                       {order.medicinesList || order.medicines}
                     </div>
                     {order.estimatedMedicinesPrice && <div className="text-[10px] text-emerald-400 font-bold mt-0.5">Est. {order.estimatedMedicinesPrice}</div>}
@@ -645,7 +645,7 @@ export default function PharmacistPortal() {
                   </td>
                   <td className="p-4 font-bold text-[#0F766E]">{query.estimatedQuantity || query.quantity}</td>
                   <td className="p-4">
-                    <div className="truncate max-w-[250px] text-slate-300" title={query.requirements}>
+                    <div className="whitespace-normal min-w-[250px] text-slate-300">
                       {query.requirements}
                     </div>
                   </td>
