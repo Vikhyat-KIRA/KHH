@@ -92,9 +92,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
         o.medicines_list?.replace(/\n/g, ' | ').replace(/"/g, '""'),
         o.total_price,
         o.lead_status || 'Pending',
-        o.created_at ? new Date(o.created_at).toLocaleString('en-IN') : ''
+        o.created_at ? new Date(o.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''
       ]);
-      filename = `Retail_Orders_${new Date().toISOString().split('T')[0]}.csv`;
+      filename = `Retail_Orders_${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }).split(',')[0].replace(/\//g, '-')}.csv`;
     } else if (adminTab === 'appointments') {
       headers = ['Patient Name', 'Patient Phone', 'Appointment Date', 'Time Slot', 'Status', 'Registered On'];
       rows = filteredAppointments.map(a => [
@@ -103,9 +103,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
         a.appointment_date,
         a.time_slot,
         a.status || (a.cancelled ? 'CANCELLED' : 'Booked'),
-        a.created_at ? new Date(a.created_at).toLocaleString('en-IN') : ''
+        a.created_at ? new Date(a.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''
       ]);
-      filename = `Consultations_${new Date().toISOString().split('T')[0]}.csv`;
+      filename = `Consultations_${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }).split(',')[0].replace(/\//g, '-')}.csv`;
     } else if (adminTab === 'b2b') {
       headers = ['Representative Name', 'Company Name', 'Phone', 'Email', 'Estimated Quantity', 'Requirements Specifications', 'Submitted On'];
       rows = filteredB2B.map(q => [
@@ -115,9 +115,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
         q.email,
         q.estimated_quantity,
         q.requirements_text?.replace(/\n/g, ' | ').replace(/"/g, '""'),
-        q.created_at ? new Date(q.created_at).toLocaleString('en-IN') : ''
+        q.created_at ? new Date(q.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''
       ]);
-      filename = `Wholesale_Queries_${new Date().toISOString().split('T')[0]}.csv`;
+      filename = `Wholesale_Queries_${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }).split(',')[0].replace(/\//g, '-')}.csv`;
     }
 
     const csvContent = [
@@ -455,7 +455,8 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
                 patient_phone: apt.patientPhone || apt.patient_phone,
                 appointment_date: apt.appointmentDate || apt.appointment_date,
                 time_slot: apt.timeSlot || apt.time_slot,
-                status: apt.status
+                status: apt.status,
+                created_at: apt.timestamp || apt.created_at || ''
               }));
             }
 
@@ -472,7 +473,8 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
                 address: order.address,
                 medicines_list: order.medicinesList || order.medicines,
                 total_price: order.totalEstimatedPrice || order.totalPrice,
-                lead_status: order.status || order.lead_status || 'Pending'
+                lead_status: order.status || order.lead_status || 'Pending',
+                created_at: order.timestamp || order.created_at || ''
               }));
             }
             
@@ -682,7 +684,8 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
-                    day: 'numeric'
+                    day: 'numeric',
+                    timeZone: 'Asia/Kolkata'
                   })}
                 </span>
               </div>
@@ -844,7 +847,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
                 <span className="block text-[9px] uppercase tracking-wider font-bold text-slate-400">{language === 'en' ? 'Ordered On' : 'ऑर्डर की तिथि'}</span>
                 <span className="font-semibold text-slate-800">
                   {order.created_at ? new Date(order.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
-                    year: 'numeric', month: 'long', day: 'numeric'
+                    year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata'
                   }) : 'Unknown'}
                 </span>
               </div>
@@ -1275,7 +1278,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
                               <div>
                                 <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{language === 'en' ? 'Ordered On' : 'ऑर्डर का समय'}</span>
                                 <span className="font-semibold text-slate-350">
-                                  {order.created_at ? new Date(order.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                                  {order.created_at ? new Date(order.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : 'Unknown'}
                                 </span>
                               </div>
                               <div className="col-span-2">
@@ -1396,7 +1399,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
                               <div>
                                 <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{language === 'en' ? 'Registered On' : 'पंजीकरण का समय'}</span>
                                 <span className="font-semibold text-slate-400">
-                                  {apt.created_at ? new Date(apt.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                                  {apt.created_at ? new Date(apt.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : 'Unknown'}
                                 </span>
                               </div>
                             </div>
@@ -1458,7 +1461,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
                               <div>
                                 <span className="block font-bold text-slate-500 uppercase tracking-wider text-[8px]">{language === 'en' ? 'Submitted On' : 'प्रस्तुत करने का समय'}</span>
                                 <span className="font-semibold text-slate-400">
-                                  {query.created_at ? new Date(query.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                                  {query.created_at ? new Date(query.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : 'Unknown'}
                                 </span>
                               </div>
                               <div>

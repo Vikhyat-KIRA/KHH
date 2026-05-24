@@ -481,6 +481,16 @@ export default function PharmacistPortal() {
     return <span className="bg-[#0F766E]/20 text-[#2DD4BF] px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-[#0F766E]/30">{language === 'en' ? 'Pending' : 'लंबित'}</span>;
   };
 
+  const getNormalizedRetailStatus = (status) => {
+    const s = (status || 'Pending').toLowerCase();
+    if (s.includes('out of stock')) return 'Out of Stock';
+    if (s.includes('out') || s === 'shipped') return 'Out for Delivery';
+    if (s.includes('deliver') || s.includes('complet')) return 'Delivered';
+    if (s.includes('cancel')) return 'Cancelled';
+    if (s.includes('confirm') || s === 'booked' || s.includes('sched')) return 'Booked';
+    return 'Pending';
+  };
+
   const renderActiveTable = () => {
     if (isLoading) {
       return (
@@ -555,7 +565,7 @@ export default function PharmacistPortal() {
                   <td className="p-4">
                     <div className="relative inline-block w-40">
                       <select
-                        value={order.status || order.lead_status || 'Pending'}
+                        value={getNormalizedRetailStatus(order.status || order.lead_status)}
                         onChange={(e) => handleUpdatePortalOrderStatus(order.id, e.target.value)}
                         className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
                       >
@@ -606,11 +616,9 @@ export default function PharmacistPortal() {
                     <div className="relative inline-block w-36">
                       <select
                         value={
-                          (apt.status === 'Confirmed' || apt.status === 'Booked' || apt.status === 'BOOKED')
-                            ? 'Confirmed'
-                            : (apt.status === 'CANCELLED' || apt.status === 'Cancelled' || apt.cancelled)
-                              ? 'CANCELLED'
-                              : 'Pending'
+                          ['Confirmed', 'Booked', 'BOOKED'].includes(apt.status) ? 'Confirmed' :
+                          (['CANCELLED', 'Cancelled'].includes(apt.status) || apt.cancelled) ? 'CANCELLED' :
+                          'Pending'
                         }
                         onChange={(e) => handleUpdatePortalAptStatus(apt.id, e.target.value)}
                         className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
