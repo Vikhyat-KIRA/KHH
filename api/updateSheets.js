@@ -196,6 +196,56 @@ export default async function handler(req, res) {
       });
 
       return res.status(200).json({ status: 'success', data: { message: `Order status updated to ${newStatus} at row ${matchRowIndex}.` } });
+    } else if (type === 'update_appointment_status') {
+      const normalizeSlot = (s) => (s || '').replace(/^0/, '').trim().toUpperCase();
+      const searchPhone = (data.patient_phone || '').trim();
+      const searchDate  = (data.appointment_date || '').trim();
+      const searchSlot  = normalizeSlot(data.time_slot);
+      const newStatus   = (data.status || 'Pending').trim();
+
+      targetTab = getMonthTabName(data.appointment_date);
+
+      if (!sheetTitles.includes(targetTab)) {
+        return res.status(200).json({ status: 'not_found', message: `Sheet tab ${targetTab} does not exist.` });
+      }
+
+      const readRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: `${targetTab}!A:F`,
+      });
+
+      const rows = readRes.data.values || [];
+      let matchRowIndex = -1;
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const rowPhone = (row[2] || '').trim();
+        const rowDate  = (row[3] || '').trim();
+        const rowSlot  = normalizeSlot(row[4]);
+        if (
+          rowPhone === searchPhone &&
+          rowDate  === searchDate  &&
+          rowSlot  === searchSlot
+        ) {
+          matchRowIndex = i + 1;
+          break;
+        }
+      }
+
+      if (matchRowIndex === -1) {
+        console.warn('Update Apt Status: no matching row found in sheet for', { searchPhone, searchDate, searchSlot });
+        return res.status(200).json({ status: 'not_found', message: 'Row not found.' });
+      }
+
+      // Column F is the 6th column (Status)
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: `${targetTab}!F${matchRowIndex}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [[newStatus]] },
+      });
+
+      return res.status(200).json({ status: 'success', data: { message: `Appointment status updated to ${newStatus} at row ${matchRowIndex}.` } });
     } else {
       return res.status(400).json({ message: 'Invalid payload type' });
     }

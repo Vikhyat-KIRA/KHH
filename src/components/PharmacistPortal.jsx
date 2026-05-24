@@ -7,7 +7,20 @@ import { doc, updateDoc } from 'firebase/firestore';
 export default function PharmacistPortal() {
   const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('retail');
-  const [overrideStatus, setOverrideStatus] = useState('auto');
+  const [overrideStatus, setOverrideStatus] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('clinic_open_override') || 'auto';
+    }
+    return 'auto';
+  });
+
+  const handleOverrideStatusChange = (val) => {
+    setOverrideStatus(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('clinic_open_override', val);
+      window.dispatchEvent(new Event('clinic-override-updated'));
+    }
+  };
   
   // Data State
   const [retailOrders, setRetailOrders] = useState([]);
@@ -125,7 +138,7 @@ export default function PharmacistPortal() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: newStatus === 'CANCELLED' ? 'cancel_appointment' : 'appointment',
+          type: 'update_appointment_status',
           data: {
             patient_name: apt.patientName || apt.patient_name,
             patient_phone: apt.patientPhone || apt.patient_phone,
@@ -401,7 +414,13 @@ export default function PharmacistPortal() {
                   <td className="p-4">
                     <div className="relative inline-block w-36">
                       <select
-                        value={apt.status || (apt.cancelled ? 'CANCELLED' : 'Pending')}
+                        value={
+                          (apt.status === 'Confirmed' || apt.status === 'Booked' || apt.status === 'BOOKED')
+                            ? 'Confirmed'
+                            : (apt.status === 'CANCELLED' || apt.status === 'Cancelled' || apt.cancelled)
+                              ? 'CANCELLED'
+                              : 'Pending'
+                        }
                         onChange={(e) => handleUpdatePortalAptStatus(apt.id, e.target.value)}
                         className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
                       >
@@ -559,13 +578,13 @@ export default function PharmacistPortal() {
               </span>
             </div>
             <div className="flex items-center gap-2 bg-[#0B1120] p-1 rounded-lg border border-[#1E293B]">
-              <button onClick={() => setOverrideStatus('auto')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'auto' ? 'bg-[#0F766E] text-white shadow-[0_0_10px_rgba(15,118,110,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
+              <button onClick={() => handleOverrideStatusChange('auto')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'auto' ? 'bg-[#0F766E] text-white shadow-[0_0_10px_rgba(15,118,110,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
                 <RefreshCw className="w-3 h-3 text-[#2DD4BF]" /> {language === 'en' ? 'Auto' : 'ऑटो'}
               </button>
-              <button onClick={() => setOverrideStatus('open')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'open' ? 'bg-[#166534] text-white shadow-[0_0_10px_rgba(22,101,52,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
+              <button onClick={() => handleOverrideStatusChange('open')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'open' ? 'bg-[#166534] text-white shadow-[0_0_10px_rgba(22,101,52,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
                 <CheckCircle className="w-3 h-3 text-emerald-500" /> {t('portal.forceOpen')}
               </button>
-              <button onClick={() => setOverrideStatus('closed')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'closed' ? 'bg-[#7F1D1D] text-white shadow-[0_0_10px_rgba(127,29,29,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
+              <button onClick={() => handleOverrideStatusChange('closed')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'closed' ? 'bg-[#7F1D1D] text-white shadow-[0_0_10px_rgba(127,29,29,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
                 <XCircle className="w-3 h-3 text-rose-500" /> {t('portal.forceClosed')}
               </button>
             </div>

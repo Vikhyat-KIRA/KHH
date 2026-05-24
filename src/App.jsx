@@ -520,7 +520,7 @@ export default function App() {
 
       {/* 3. CREDIBILITY ROW */}
       {/* ABOUT US SECTION */}
-      <section id="about" className="py-16 bg-white/90 border-b border-[#EAE5DC] relative z-10">
+      <section id="about" className="py-16 bg-white/90 border-b border-[#EAE5DC] relative z-10 scroll-mt-20">
         <div className="max-w-4xl mx-auto px-6 text-center space-y-4">
           <h2 className="text-2xl md:text-3xl font-extrabold text-[#1E293B] tracking-tight">{t('about.title')}</h2>
           <p className="text-sm md:text-base text-[#64748B] leading-relaxed">
@@ -578,7 +578,7 @@ export default function App() {
       </section>
 
       {/* 3.5 MEET THE OWNER / FOUNDER SECTION */}
-      <section id="meet-owner" className="py-24 bg-white border-b border-[#EAE5DC] relative z-10 overflow-hidden">
+      <section id="meet-owner" className="py-24 bg-white border-b border-[#EAE5DC] relative z-10 overflow-hidden scroll-mt-20">
         {/* Decorative backdrop graphics */}
         <div className="absolute top-1/2 left-0 w-96 h-96 rounded-full bg-[#115E59]/5 blur-[120px] pointer-events-none -translate-y-1/2"></div>
         <div className="absolute top-1/4 right-0 w-80 h-80 rounded-full bg-amber-500/5 blur-[100px] pointer-events-none"></div>
@@ -695,7 +695,7 @@ export default function App() {
       </section>
 
       {/* 4. CLINIC APPOINTMENT PORTAL (B2C MODULE) */}
-      <section id="book-slot" className="py-24 bg-[#FDFBF7]/90 relative z-10">
+      <section id="book-slot" className="py-24 bg-[#FDFBF7]/90 relative z-10 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
@@ -837,7 +837,7 @@ export default function App() {
       </div>
 
       {/* 4.5 RETAIL BUY PORTAL (B2C REMEDIES) */}
-      <section id="retail-buy" className="py-24 bg-white/90 relative z-10">
+      <section id="retail-buy" className="py-24 bg-white/90 relative z-10 scroll-mt-20">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(17,94,89,0.03),transparent)] pointer-events-none"></div>
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           
@@ -875,7 +875,7 @@ export default function App() {
       </div>
 
       {/* 5. B2B BULK PROCUREMENT PORTAL */}
-      <section id="bulk-orders" className="py-24 bg-white/90 relative z-10">
+      <section id="bulk-orders" className="py-24 bg-white/90 relative z-10 scroll-mt-20">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(15,118,110,0.03),transparent)] pointer-events-none"></div>
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           
