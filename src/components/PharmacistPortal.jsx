@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Lock, RefreshCw, Package, Stethoscope, Briefcase, Clock, Search, ChevronDown, Download, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, getDocs } from 'firebase/firestore';
 
 export default function PharmacistPortal() {
   const { language, t } = useLanguage();
@@ -41,27 +41,51 @@ export default function PharmacistPortal() {
     setSyncStatus('syncing');
     
     try {
-      const response = await fetch('/api/readSheets');
-      const result = await response.json();
-      
-      if (result.status === 'success' && result.data) {
-        setRetailOrders(result.data.retailOrders || []);
-        setConsultations(result.data.appointments || []);
-        setWholesaleQueries(result.data.b2bQueries || []);
+      if (isFirebaseConfigured) {
+        let rOrders = [];
+        let rApts = [];
+        let rBulk = [];
+        
+        const ordersSnapshot = await getDocs(collection(db, 'retail_orders'));
+        ordersSnapshot.forEach((docSnap) => rOrders.push({ id: docSnap.id, ...docSnap.data() }));
+        
+        const aptsSnapshot = await getDocs(collection(db, 'clinic_appointments'));
+        aptsSnapshot.forEach((docSnap) => rApts.push({ id: docSnap.id, ...docSnap.data() }));
+        
+        const b2bSnapshot = await getDocs(collection(db, 'bulk_orders'));
+        b2bSnapshot.forEach((docSnap) => rBulk.push({ id: docSnap.id, ...docSnap.data() }));
+
+        rOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        rApts.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+        rBulk.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+        setRetailOrders(rOrders);
+        setConsultations(rApts);
+        setWholesaleQueries(rBulk);
         setSyncStatus('success');
-      } else if (result.status === 'mock_mode') {
-        // Fallback to local storage
-        const localRetail = JSON.parse(localStorage.getItem('retail_orders') || '[]');
-        const localBulk = JSON.parse(localStorage.getItem('bulk_orders') || '[]');
-        const localApts = JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
-        
-        setRetailOrders(localRetail.slice(-20).reverse());
-        setWholesaleQueries(localBulk.slice(-20).reverse());
-        setConsultations(localApts.slice(-20).reverse());
-        
-        setSyncStatus('mock');
       } else {
-        throw new Error(result.message || 'Failed to fetch data');
+        const response = await fetch('/api/readSheets');
+        const result = await response.json();
+        
+        if (result.status === 'success' && result.data) {
+          setRetailOrders(result.data.retailOrders || []);
+          setConsultations(result.data.appointments || []);
+          setWholesaleQueries(result.data.b2bQueries || []);
+          setSyncStatus('success');
+        } else if (result.status === 'mock_mode') {
+          // Fallback to local storage
+          const localRetail = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+          const localBulk = JSON.parse(localStorage.getItem('bulk_orders') || '[]');
+          const localApts = JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
+          
+          setRetailOrders(localRetail.slice(-20).reverse());
+          setWholesaleQueries(localBulk.slice(-20).reverse());
+          setConsultations(localApts.slice(-20).reverse());
+          
+          setSyncStatus('mock');
+        } else {
+          throw new Error(result.message || 'Failed to fetch data');
+        }
       }
       setLastSync(new Date().toLocaleTimeString());
     } catch (error) {
