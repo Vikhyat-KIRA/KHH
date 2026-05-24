@@ -16,6 +16,7 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, addDoc } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
@@ -187,7 +188,9 @@ export default function RetailForm() {
   const handleEstimatePrices = async () => {
     const firstEmptyIndex = medicineItems.findIndex(itm => !itm.name.trim());
     if (firstEmptyIndex !== -1) {
-      setEstimateError(t('forms.valAllMeds', { row: firstEmptyIndex + 1 }));
+      const errText = t('forms.valAllMeds', { row: firstEmptyIndex + 1 });
+      setEstimateError(errText);
+      toast.error(errText);
       return;
     }
     
@@ -208,12 +211,17 @@ export default function RetailForm() {
       const data = await res.json();
       if (res.ok && data.success) {
         setEstimatedData(data);
+        toast.success(language === 'en' ? 'AI Pricing Loaded! Check discounted summary.' : 'एआई मूल्य विवरण लोड हो गया! छूट विवरण देखें।');
       } else {
-        setEstimateError(data.message || 'AI price estimation failed. Please try again.');
+        const errText = data.message || 'AI price estimation failed. Please try again.';
+        setEstimateError(errText);
+        toast.error(errText);
       }
     } catch (err) {
       console.error('AI Price estimation fetch error:', err);
-      setEstimateError('Could not reach the AI price estimator. Please try again.');
+      const errText = 'Could not reach the AI price estimator. Please try again.';
+      setEstimateError(errText);
+      toast.error(errText);
     } finally {
       setEstimating(false);
     }
@@ -224,7 +232,10 @@ export default function RetailForm() {
     setError('');
     setSuccess(false);
 
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error(language === 'en' ? 'Please complete all required fields and medicine names correctly.' : 'कृपया सभी आवश्यक फ़ील्ड और दवाओं के नाम सही ढंग से भरें।');
+      return;
+    }
 
     setSubmitting(true);
 
@@ -326,8 +337,32 @@ export default function RetailForm() {
         })
       }).catch((sheetErr) => console.error('Google Sheets sync failed:', sheetErr));
 
+      // Send automated WhatsApp confirmation
+      try {
+        fetch('/api/sendWhatsApp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'retail_order',
+            customer_name: payload.customer_name,
+            phone: payload.phone,
+            medicines_list: payload.medicines_list,
+            total_price: payload.total_price,
+            address: payload.address
+          })
+        }).then(res => {
+          if (!res.ok) console.warn('⚠️ WhatsApp API responded with error:', res.status);
+          else console.log('✅ WhatsApp order confirmation sent.');
+        }).catch(err => {
+          console.error('⚠️ WhatsApp API call failed:', err);
+        });
+      } catch (waErr) {
+        console.error('⚠️ WhatsApp notification error:', waErr);
+      }
+
       setOrderDetails(payload);
       setSuccess(true);
+      toast.success(language === 'en' ? 'Remedies Order Submitted! Please confirm on WhatsApp.' : 'दवा ऑर्डर सबमिट हो गया! कृपया व्हाट्सएप पर पुष्टि करें।');
       setName('');
       setPhone('');
       setEmail('');
@@ -340,6 +375,7 @@ export default function RetailForm() {
     } catch (err) {
       console.error('Retail order submission error:', err);
       setError(t('forms.valUnexpected'));
+      toast.error(t('forms.valUnexpected'));
     } finally {
       setSubmitting(false);
     }

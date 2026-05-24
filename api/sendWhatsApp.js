@@ -17,10 +17,63 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { patient_name, patient_phone, appointment_date, time_slot } = req.body;
+    const {
+      type = 'appointment',
+      patient_name,
+      patient_phone,
+      appointment_date,
+      time_slot,
+      customer_name,
+      phone,
+      medicines_list,
+      total_price,
+      address
+    } = req.body;
 
-    if (!patient_name || !patient_phone || !appointment_date || !time_slot) {
-      return res.status(400).json({ message: 'Missing required fields.' });
+    let recipientPhone = '';
+    let messageText = '';
+
+    if (type === 'retail_order') {
+      if (!customer_name || !phone || !medicines_list || !address) {
+        return res.status(400).json({ message: 'Missing required B2C order fields.' });
+      }
+      recipientPhone = phone;
+
+      // Build B2C order WhatsApp message
+      messageText =
+        `Hello ${customer_name}! 👋\n\n` +
+        `Your remedies order at *Kanchan Homoeo Hall* has been successfully placed! 📦✅\n\n` +
+        `💊 *Medicines ordered:*\n${medicines_list}\n\n` +
+        `💵 *Total Price:* ₹${total_price}\n` +
+        `📍 *Delivery Address:* ${address}\n\n` +
+        `We are verifying your order details. Our pharmacist will match courier dispatch shortly. Thank you for choosing us! 🌿\n\n` +
+        `— Kanchan Homoeo Hall`;
+    } else {
+      // Default to appointment
+      if (!patient_name || !patient_phone || !appointment_date || !time_slot) {
+        return res.status(400).json({ message: 'Missing required appointment fields.' });
+      }
+      recipientPhone = patient_phone;
+
+      // Format date nicely for the message
+      const dateObj = new Date(appointment_date);
+      const formattedDate = dateObj.toLocaleDateString('en-IN', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'Asia/Kolkata'
+      });
+
+      // Build the WhatsApp message text
+      messageText =
+        `Hello ${patient_name}! 👋\n\n` +
+        `Your appointment at *Kanchan Homoeo Hall* has been successfully booked! ✅\n\n` +
+        `📅 *Date:* ${formattedDate}\n` +
+        `🕒 *Time:* ${time_slot}\n\n` +
+        `📍 *Address:* Near Mahabir Chowk, PyadaToli, Upper Bazar, Ranchi.\n\n` +
+        `Thank you for choosing us for holistic, natural care. We look forward to seeing you! 🌿\n\n` +
+        `— Kanchan Homoeo Hall`;
     }
 
     // Read credentials securely from server environment
@@ -31,32 +84,12 @@ export default async function handler(req, res) {
     const accessToken  = process.env.WHATSAPP_ACCESS_TOKEN;
 
     // Normalize phone number to E.164 format (e.g. 9431360455 → 919431360455)
-    let cleanPhone = patient_phone.replace(/[^0-9]/g, '');
+    let cleanPhone = recipientPhone.replace(/[^0-9]/g, '');
     if (cleanPhone.length === 10) {
       cleanPhone = `91${cleanPhone}`;          // add India country code
     } else if (cleanPhone.startsWith('0')) {
       cleanPhone = `91${cleanPhone.slice(1)}`; // replace leading 0 with 91
     }
-
-    // Format date nicely for the message
-    const dateObj = new Date(appointment_date);
-    const formattedDate = dateObj.toLocaleDateString('en-IN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      timeZone: 'Asia/Kolkata'
-    });
-
-    // Build the WhatsApp message text
-    const messageText =
-      `Hello ${patient_name}! 👋\n\n` +
-      `Your appointment at *Kanchan Homoeo Hall* has been successfully booked! ✅\n\n` +
-      `📅 *Date:* ${formattedDate}\n` +
-      `🕒 *Time:* ${time_slot}\n\n` +
-      `📍 *Address:* Near Mahabir Chowk, PyadaToli, Upper Bazar, Ranchi.\n\n` +
-      `Thank you for choosing us for holistic, natural care. We look forward to seeing you! 🌿\n\n` +
-      `— Kanchan Homoeo Hall`;
 
     // 1. Check if the 100% Free Baileys WhatsApp Bridge is configured (priority fallback)
     if (bridgeUrl) {

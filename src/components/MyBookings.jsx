@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Calendar, Clock, User, Phone, CheckCircle2, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2, Lock, Package } from 'lucide-react';
+import { Search, Calendar, Clock, User, Phone, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2, Lock, Package } from 'lucide-react';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
@@ -26,6 +26,11 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
 
   // Clinic Administration Portal States
   const [isAdminMode, setIsAdminMode] = useState(initialAdminMode);
+  const [prevInitialAdminMode, setPrevInitialAdminMode] = useState(initialAdminMode);
+  if (initialAdminMode !== prevInitialAdminMode) {
+    setIsAdminMode(initialAdminMode);
+    setPrevInitialAdminMode(initialAdminMode);
+  }
   const [adminTab, setAdminTab] = useState('orders'); // 'orders' | 'appointments' | 'b2b'
   const [allOrders, setAllOrders] = useState([]);
   const [allAppointments, setAllAppointments] = useState([]);
@@ -66,22 +71,21 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
     window.dispatchEvent(new Event('clinic-override-updated'));
   };
 
+  const handleTabChange = (tab) => {
+    setAdminTab(tab);
+    setSearchTerm('');
+    setStatusFilter('ALL');
+  };
+
   useEffect(() => {
-    setIsAdminMode(initialAdminMode);
-    if (initialAdminMode && isAuthenticated) {
+    if (isAdminMode && isAuthenticated) {
       fetchAdminData();
       const interval = setInterval(() => {
         fetchAdminData(true);
       }, 15000);
       return () => clearInterval(interval);
     }
-  }, [initialAdminMode, isAuthenticated]);
-
-  // Reset filters on tab switch
-  useEffect(() => {
-    setSearchTerm('');
-    setStatusFilter('ALL');
-  }, [adminTab]);
+  }, [isAdminMode, isAuthenticated]);
 
   // CSV Export Engine
   const handleExportCSV = () => {
@@ -562,14 +566,12 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
     );
 
     try {
-      let docUpdated = false;
       if (isFirebaseConfigured && !bookingId.startsWith('Appointments_')) {
         try {
           await updateDoc(doc(db, 'clinic_appointments', bookingId), {
             status: 'CANCELLED',
             cancelled: true
           });
-          docUpdated = true;
         } catch (firestoreErr) {
           console.warn("⚠️ Firestore cancellation failed, falling back to mockDb:", firestoreErr);
         }
@@ -1138,7 +1140,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
           {/* Interactive Console Tabs */}
           <div className="flex bg-slate-900 p-1.5 rounded-xl border border-slate-800 max-w-xl mx-auto shadow-inner">
             <button
-              onClick={() => setAdminTab('orders')}
+              onClick={() => handleTabChange('orders')}
               className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer text-center border-0 ${
                 adminTab === 'orders'
                   ? 'bg-teal-600 text-white shadow-md font-extrabold'
@@ -1148,7 +1150,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
               📦 {language === 'en' ? 'Retail Orders' : 'खुदरा ऑर्डर'} ({allOrders.length})
             </button>
             <button
-              onClick={() => setAdminTab('appointments')}
+              onClick={() => handleTabChange('appointments')}
               className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer text-center border-0 ${
                 adminTab === 'appointments'
                   ? 'bg-teal-600 text-white shadow-md font-extrabold'
@@ -1158,7 +1160,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
               📅 {language === 'en' ? 'Consultations' : 'परामर्श'} ({allAppointments.length})
             </button>
             <button
-              onClick={() => setAdminTab('b2b')}
+              onClick={() => handleTabChange('b2b')}
               className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer text-center border-0 ${
                 adminTab === 'b2b'
                   ? 'bg-teal-600 text-white shadow-md font-extrabold'

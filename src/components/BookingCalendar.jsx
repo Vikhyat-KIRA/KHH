@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Calendar, Clock, User, Phone, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
@@ -190,14 +191,17 @@ export default function BookingCalendar() {
 
     if (!name.trim()) {
       setError(t('calendar.valName'));
+      toast.error(t('calendar.valName'));
       return;
     }
     if (!phone.trim()) {
       setError(t('calendar.valPhone'));
+      toast.error(t('calendar.valPhone'));
       return;
     }
     if (!selectedTimeSlot) {
       setError(t('calendar.valSlot'));
+      toast.error(t('calendar.valSlot'));
       return;
     }
 
@@ -281,6 +285,7 @@ export default function BookingCalendar() {
         time_slot: payload.time_slot
       });
       setSuccess(true);
+      toast.success(language === 'en' ? 'Appointment Submitted! Please confirm on WhatsApp.' : 'अपॉइंटमेंट सबमिट हो गया! कृपया व्हाट्सएप पर पुष्टि करें।');
       
       // Trigger Premium Native Browser Push Notification
       if ('Notification' in window) {
@@ -316,6 +321,7 @@ export default function BookingCalendar() {
     } catch (err) {
       console.error('Booking submission error:', err);
       setError(t('forms.valUnexpected'));
+      toast.error(t('forms.valUnexpected'));
     } finally {
       setSubmitting(false);
     }

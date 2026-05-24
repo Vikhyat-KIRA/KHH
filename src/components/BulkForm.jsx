@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Building2, User, Mail, Phone, PackageOpen, ClipboardEdit, Send, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { Building2, User, Phone, ClipboardEdit, Send, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, addDoc } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
@@ -46,7 +47,10 @@ export default function BulkForm() {
     setError('');
     setSuccess(false);
 
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error(language === 'en' ? 'Please complete all required fields correctly.' : 'कृपया सभी आवश्यक फ़ील्ड सही ढंग से भरें।');
+      return;
+    }
 
     setSubmitting(true);
 
@@ -96,6 +100,7 @@ export default function BulkForm() {
       }).catch((sheetErr) => console.error('Google Sheets sync failed:', sheetErr));
 
       setSuccess(true);
+      toast.success(language === 'en' ? 'Wholesale Inquiry Submitted! We will review drug license details shortly.' : 'थोक पूछताछ सबमिट हो गई! हम जल्द ही ड्रग लाइसेंस विवरण की समीक्षा करेंगे।');
       setName('');
       setCompany('');
       setEmail('');
@@ -106,6 +111,7 @@ export default function BulkForm() {
     } catch (err) {
       console.error('B2B bulk order error:', err);
       setError(t('forms.valUnexpected'));
+      toast.error(t('forms.valUnexpected'));
     } finally {
       setSubmitting(false);
     }

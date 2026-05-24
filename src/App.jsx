@@ -15,6 +15,7 @@ import {
   X,
   ShoppingBag
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import BookingCalendar from './components/BookingCalendar';
 import BulkForm from './components/BulkForm';
 import MyBookings from './components/MyBookings';
@@ -120,7 +121,7 @@ export default function App() {
     } catch (e) {
       console.error("SEO update error", e);
     }
-  }, [activeView, language]);
+  }, [activeView, language, t]);
 
   // Dynamic Open Status Badge logic — Mon–Sat, 10:30 AM to 8:00 PM IST (Ranchi Time)
   useEffect(() => {
@@ -489,7 +490,12 @@ export default function App() {
       ) : (
         <>
           {/* 2. HERO SECTION */}
-          <section className="relative overflow-hidden pt-20 pb-24 md:pt-28 md:pb-32 bg-gradient-to-b from-[#FDFBF7]/90 via-[#F9F6F0]/90 to-[#FDFBF7]/90 z-10">
+          <motion.section 
+            className="relative overflow-hidden pt-20 pb-24 md:pt-28 md:pb-32 bg-gradient-to-b from-[#FDFBF7]/90 via-[#F9F6F0]/90 to-[#FDFBF7]/90 z-10"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
         {/* Subtle warm decorative blurs */}
         <div className="absolute top-1/4 right-0 w-96 h-96 rounded-full bg-[#115E59]/5 blur-[120px] pointer-events-none"></div>
         <div className="absolute top-1/3 left-10 w-80 h-80 rounded-full bg-[#0F766E]/5 blur-[100px] pointer-events-none"></div>
@@ -555,21 +561,35 @@ export default function App() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 3. CREDIBILITY ROW */}
       {/* ABOUT US SECTION */}
-      <section id="about" className="py-16 bg-white/90 border-b border-[#EAE5DC] relative z-10 scroll-mt-20">
+      <motion.section 
+        id="about" 
+        className="py-16 bg-white/90 border-b border-[#EAE5DC] relative z-10 scroll-mt-20"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8 }}
+      >
         <div className="max-w-4xl mx-auto px-6 text-center space-y-4">
           <h2 className="text-2xl md:text-3xl font-extrabold text-[#1E293B] tracking-tight">{t('about.title')}</h2>
           <p className="text-sm md:text-base text-[#64748B] leading-relaxed">
             {t('about.text')}
           </p>
         </div>
-      </section>
+      </motion.section>
 
       {/* 3. CREDIBILITY ROW */}
-      <section id="credibility" className="border-b border-[#EAE5DC] bg-[#F9F6F0]/90 py-12 relative z-10">
+      <motion.section 
+        id="credibility" 
+        className="border-b border-[#EAE5DC] bg-[#F9F6F0]/90 py-12 relative z-10"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8 }}
+      >
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             
@@ -614,10 +634,17 @@ export default function App() {
 
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 3.5 MEET THE OWNER / FOUNDER SECTION */}
-      <section id="meet-owner" className="py-24 bg-white border-b border-[#EAE5DC] relative z-10 overflow-hidden scroll-mt-20">
+      <motion.section 
+        id="meet-owner" 
+        className="py-24 bg-white border-b border-[#EAE5DC] relative z-10 overflow-hidden scroll-mt-20"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8 }}
+      >
         {/* Decorative backdrop graphics */}
         <div className="absolute top-1/2 left-0 w-96 h-96 rounded-full bg-[#115E59]/5 blur-[120px] pointer-events-none -translate-y-1/2"></div>
         <div className="absolute top-1/4 right-0 w-80 h-80 rounded-full bg-amber-500/5 blur-[100px] pointer-events-none"></div>
@@ -731,10 +758,17 @@ export default function App() {
 
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 4. CLINIC APPOINTMENT PORTAL (B2C MODULE) */}
-      <section id="book-slot" className="py-24 bg-[#FDFBF7]/90 relative z-10 scroll-mt-20">
+      <motion.section 
+        id="book-slot" 
+        className="py-24 bg-[#FDFBF7]/90 relative z-10 scroll-mt-20"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8 }}
+      >
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
@@ -857,7 +891,7 @@ export default function App() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* ELEGANT SECTION DIVIDER 1 */}
       <div className="relative w-full overflow-hidden bg-[#F9F6F0]/90 border-y border-[#EAE5DC] py-6 z-10">
@@ -876,7 +910,14 @@ export default function App() {
       </div>
 
       {/* 4.5 RETAIL BUY PORTAL (B2C REMEDIES) */}
-      <section id="retail-buy" className="py-24 bg-white/90 relative z-10 scroll-mt-20">
+      <motion.section 
+        id="retail-buy" 
+        className="py-24 bg-white/90 relative z-10 scroll-mt-20"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8 }}
+      >
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(17,94,89,0.03),transparent)] pointer-events-none"></div>
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           
@@ -895,7 +936,7 @@ export default function App() {
           <RetailForm />
 
         </div>
-      </section>
+      </motion.section>
 
       {/* ELEGANT SECTION DIVIDER 2 */}
       <div className="relative w-full overflow-hidden bg-[#F9F6F0]/90 border-y border-[#EAE5DC] py-6 z-10">
@@ -914,7 +955,14 @@ export default function App() {
       </div>
 
       {/* 5. B2B BULK PROCUREMENT PORTAL */}
-      <section id="bulk-orders" className="py-24 bg-white/90 relative z-10 scroll-mt-20">
+      <motion.section 
+        id="bulk-orders" 
+        className="py-24 bg-white/90 relative z-10 scroll-mt-20"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8 }}
+      >
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(15,118,110,0.03),transparent)] pointer-events-none"></div>
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           
@@ -934,10 +982,17 @@ export default function App() {
           <BulkForm />
 
         </div>
-      </section>
+      </motion.section>
 
       {/* 6. CONTACT & LOCATION HUB */}
-      <section id="contact" className="py-24 bg-[#FDFBF7]/90 border-t border-[#EAE5DC] relative z-10">
+      <motion.section 
+        id="contact" 
+        className="py-24 bg-[#FDFBF7]/90 border-t border-[#EAE5DC] relative z-10"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8 }}
+      >
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
             
@@ -1043,7 +1098,7 @@ export default function App() {
 
           </div>
         </div>
-      </section>
+      </motion.section>
         </>
       )}
 

@@ -221,7 +221,7 @@ Return your response ONLY as a JSON object, with no markdown formatting or extra
         const size = (rawSize || '30ml').trim();
         const qty = parseInt(itm.quantity, 10) || 1;
 
-        let unitPrice = 120; // default dilution 30ml
+        let unitPrice; // default dilution 30ml
         const isQ = /\b[qQ]\b|mother/i.test(potency);
         const isTablet = /g\b|tablet/i.test(size);
 

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Lock, RefreshCw, Package, Stethoscope, Briefcase, Clock, Search, ChevronDown, Download, CheckCircle, XCircle, AlertCircle, MessageCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useLanguage } from '../context/LanguageContext';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { doc, updateDoc, collection, getDocs } from 'firebase/firestore';
 
-export default function PharmacistPortal() {
+export default function AdminDashboard({ onLogout }) {
   const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('retail');
   const [overrideStatus, setOverrideStatus] = useState(() => {
@@ -220,8 +221,10 @@ export default function PharmacistPortal() {
         })
       }).catch(e => console.error('Sheets status sync failed:', e));
 
+      toast.success(`Order status updated to "${newStatus}"`);
     } catch (err) {
       console.error('Failed to update retail order status from portal:', err);
+      toast.error('Failed to update order status');
     }
   };
 
@@ -265,8 +268,10 @@ export default function PharmacistPortal() {
         })
       }).catch(e => console.error('Sheets price sync failed:', e));
 
+      toast.success(`Order price set to ₹${newPrice}`);
     } catch (err) {
       console.error('Failed to update retail order price from portal:', err);
+      toast.error('Failed to update price');
     }
   };
 
@@ -312,8 +317,10 @@ export default function PharmacistPortal() {
         })
       }).catch(e => console.error('Sheets appointment sync failed:', e));
 
+      toast.success(`Appointment status updated to "${newStatus}"`);
     } catch (err) {
       console.error('Failed to update appointment status from portal:', err);
+      toast.error('Failed to update appointment status');
     }
   };
 
@@ -399,9 +406,9 @@ export default function PharmacistPortal() {
 
   // CSV Exporter for local data
   const handleExportCSV = () => {
-    let headers = [];
-    let rows = [];
-    let filename = '';
+    let headers;
+    let rows;
+    let filename;
 
     if (activeTab === 'retail') {
       const dataToExport = getFilteredRetailOrders();
@@ -736,7 +743,10 @@ export default function PharmacistPortal() {
               <RefreshCw className={`w-3 h-3 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
               {syncStatus === 'mock' ? (language === 'en' ? 'Mock Sync' : 'मॉक सिंक') : t('portal.refreshBtn')}
             </button>
-            <button className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#31112C] border border-[#701A4B] text-[#F43F5E] text-[10px] font-bold uppercase tracking-wider hover:bg-[#4C1236] transition-colors">
+            <button 
+              onClick={onLogout}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#31112C] border border-[#701A4B] text-[#F43F5E] text-[10px] font-bold uppercase tracking-wider hover:bg-[#4C1236] transition-colors cursor-pointer"
+            >
               <Lock className="w-3 h-3" />
               {language === 'en' ? 'Lock Portal' : 'पोर्टल लॉक करें'}
             </button>

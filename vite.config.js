@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import fs from 'fs'
 import path from 'path'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // Custom local API serverless function runner for local development
 const localApiPlugin = () => ({
@@ -77,5 +78,30 @@ export default defineConfig({
     react(),
     tailwindcss(),
     localApiPlugin(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['logo.png'],
+      manifest: {
+        name: 'Kanchan Homoeo Hall',
+        short_name: 'Kanchan',
+        description: 'Trusted Holistic Healing & Authentic Homoeopathic Remedies',
+        theme_color: '#115E59',
+        background_color: '#FDFBF7',
+        display: 'standalone',
+        icons: [
+          {
+            src: '/logo.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: '/logo.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      }
+    }),
   ],
 })
