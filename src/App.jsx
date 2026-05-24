@@ -709,8 +709,66 @@ export default function App() {
             </p>
           </div>
 
-          <div className="relative">
-            <BookingCalendar />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            {/* Left Column: Doctor Profile Card */}
+            <div className="lg:col-span-4 space-y-6">
+              <div className="relative group rounded-2xl overflow-hidden border border-[#EAE5DC] bg-white p-5 shadow-lg shadow-[#EFEAE2]/50 transition-all duration-300 hover:shadow-xl">
+                {/* Glowing subtle ring */}
+                <div className="absolute inset-0 border-2 border-white/40 rounded-2xl pointer-events-none z-10"></div>
+                
+                {/* Doctor Photo */}
+                <div className="aspect-square w-full rounded-xl overflow-hidden bg-[#FDFBF7] border border-[#EAE5DC]/60 relative flex items-center justify-center shadow-inner">
+                  <img 
+                    src="/doctor.jpg" 
+                    alt="Dr. Harjeet Singh - Expert Consulting Physician" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute top-3 left-3 bg-teal-600/90 backdrop-blur-sm text-white text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-lg border border-teal-500/20 shadow-sm z-20">
+                    {language === 'en' ? 'Expert Consultant' : 'विशेषज्ञ सलाहकार'}
+                  </div>
+                </div>
+
+                {/* Doctor Details */}
+                <div className="mt-5 space-y-3">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-black text-[#1A2421] tracking-tight">
+                      {language === 'en' ? 'Dr. Harjeet Singh' : 'डॉ. हरजीत सिंह'}
+                    </h3>
+                    <p className="text-2xs font-extrabold text-[#115E59] tracking-wider uppercase">
+                      {language === 'en' ? 'B.H.M.S. | Senior Consulting Physician' : 'बी.एच.एम.एस. | वरिष्ठ परामर्श चिकित्सक'}
+                    </p>
+                  </div>
+                  
+                  <div className="h-[1px] bg-[#EAE5DC]/60 my-2"></div>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-start gap-2.5 text-slate-600 leading-relaxed font-medium">
+                      <span className="shrink-0 text-teal-600 font-bold text-sm">🩺</span>
+                      <span>
+                        {language === 'en' ? 'Specialist in clinical diagnostics, chronic constitutional care, and root-cause homoeopathic therapies.' : 'नैदानिक निदान, पुराने संवैधानिक उपचार और मूल-कारण होम्योपैथिक उपचार में विशेषज्ञ।'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-slate-650 leading-relaxed font-semibold">
+                      <span className="shrink-0 text-teal-600 font-bold text-sm">⏰</span>
+                      <span>
+                        {language === 'en' ? 'OPD Hours: 3:00 PM — 5:00 PM (Mon-Sat)' : 'ओपीडी समय: दोपहर 3:00 बजे — शाम 5:00 बजे (सोम-शनि)'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-slate-650 leading-relaxed font-semibold">
+                      <span className="shrink-0 text-teal-600 font-bold text-sm">📍</span>
+                      <span>
+                        {language === 'en' ? 'OPD Slip Token Confirmed Instantly' : 'ओपीडी पर्ची टोकन तुरंत पुष्ट किया जाता है'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Appointment Scheduler */}
+            <div className="lg:col-span-8 relative">
+              <BookingCalendar />
+            </div>
           </div>
 
           {/* 🌟 PREMIUM CLINIC PRO-TIP PORTAL INDICATOR */}
