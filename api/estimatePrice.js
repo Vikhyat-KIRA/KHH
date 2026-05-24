@@ -21,7 +21,7 @@ function estimateDeliveryCharge(addressStr, subtotal) {
 
   const addr = addressStr.toLowerCase();
   
-  // Tier 1: Very Close (~ under 3km) -> ₹30
+  // Tier 1: Very Close (under 5km) -> ₹0 (Free!)
   if (
     addr.includes('upper bazar') || 
     addr.includes('lalpur') || 
@@ -32,9 +32,19 @@ function estimateDeliveryCharge(addressStr, subtotal) {
     addr.includes('daily market') ||
     addr.includes('kotwali') ||
     addr.includes('purulia road') ||
-    addr.includes('dr. fatehullah')
+    addr.includes('dr. fatehullah') ||
+    addr.includes('kutchery') || 
+    addr.includes('morabadi') || 
+    addr.includes('bariatu') || 
+    addr.includes('kokar') || 
+    addr.includes('kantatoli') || 
+    addr.includes('bahubazar') || 
+    addr.includes('kadru') ||
+    addr.includes('harmu') ||
+    addr.includes('ashok nagar') ||
+    addr.includes('argora')
   ) {
-    return 30;
+    return 0;
   }
 
   // Tier 3: Medium-Far (~ 8km - 15km) -> ₹75
@@ -68,23 +78,7 @@ function estimateDeliveryCharge(addressStr, subtotal) {
     return 100;
   }
 
-  // Tier 2: Close-Medium (~ 3km - 8km) -> ₹50 (Default close areas)
-  if (
-    addr.includes('kutchery') || 
-    addr.includes('morabadi') || 
-    addr.includes('bariatu') || 
-    addr.includes('kokar') || 
-    addr.includes('kantatoli') || 
-    addr.includes('bahubazar') || 
-    addr.includes('kadru') ||
-    addr.includes('harmu') ||
-    addr.includes('ashok nagar') ||
-    addr.includes('argora')
-  ) {
-    return 50;
-  }
-
-  return 50; // default standard delivery charge
+  return 50; // default standard delivery charge for close-medium (5km to 8km)
 }
 
 export default async function handler(req, res) {
@@ -146,11 +140,11 @@ Perform the following calculations:
    - If Subtotal is under ₹500:
      - If the customer's address is not provided or is blank, default to ₹50.
      - If the address is provided, estimate the approximate road distance in km from Upper Bazar, Ranchi to that address.
-     - Apply this distance-based dynamic pricing for delivery:
-       - Under 3 km: ₹30
-       - 3 km to 8 km: ₹50
-       - 8 km to 15 km: ₹75
-       - Above 15 km: ₹100
+      - Apply this distance-based dynamic pricing for delivery:
+        - Under 5 km: ₹0 (Free delivery!)
+        - 5 km to 8 km: ₹50
+        - 8 km to 15 km: ₹75
+        - Above 15 km: ₹100
        - If the address is outside Ranchi city limits, explain and set a plausible shipping rate (e.g. ₹100).
 4. Grand Total: Subtotal - Discount + Delivery Charge.
 

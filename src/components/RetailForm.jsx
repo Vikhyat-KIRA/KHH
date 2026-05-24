@@ -89,7 +89,7 @@ export default function RetailForm() {
 
     const addr = addressStr.toLowerCase();
     
-    // Tier 1: Very Close (~ under 3km) -> ₹30
+    // Tier 1: Very Close (under 5km) -> ₹0 (Free!)
     if (
       addr.includes('upper bazar') || 
       addr.includes('lalpur') || 
@@ -100,9 +100,19 @@ export default function RetailForm() {
       addr.includes('daily market') ||
       addr.includes('kotwali') ||
       addr.includes('purulia road') ||
-      addr.includes('dr. fatehullah')
+      addr.includes('dr. fatehullah') ||
+      addr.includes('kutchery') || 
+      addr.includes('morabadi') || 
+      addr.includes('bariatu') || 
+      addr.includes('kokar') || 
+      addr.includes('kantatoli') || 
+      addr.includes('bahubazar') || 
+      addr.includes('kadru') ||
+      addr.includes('harmu') ||
+      addr.includes('ashok nagar') ||
+      addr.includes('argora')
     ) {
-      return 30;
+      return 0;
     }
 
     // Tier 3: Medium-Far (~ 8km - 15km) -> ₹75
@@ -136,23 +146,7 @@ export default function RetailForm() {
       return 100;
     }
 
-    // Tier 2: Close-Medium (~ 3km - 8km) -> ₹50 (Default close areas)
-    if (
-      addr.includes('kutchery') || 
-      addr.includes('morabadi') || 
-      addr.includes('bariatu') || 
-      addr.includes('kokar') || 
-      addr.includes('kantatoli') || 
-      addr.includes('bahubazar') || 
-      addr.includes('kadru') ||
-      addr.includes('harmu') ||
-      addr.includes('ashok nagar') ||
-      addr.includes('argora')
-    ) {
-      return 50;
-    }
-
-    return 50; // default standard delivery charge
+    return 50; // default standard delivery charge for close-medium (5km to 8km)
   };
 
   const validate = () => {
