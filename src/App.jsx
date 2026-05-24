@@ -323,7 +323,7 @@ export default function App() {
             >
               {t('nav.home')}
             </button>
-            <a href="#credibility" onClick={(e) => smoothScroll(e, 'credibility')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.about')}</a>
+            <a href="#about" onClick={(e) => smoothScroll(e, 'about')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.about')}</a>
             <a href="#meet-owner" onClick={(e) => smoothScroll(e, 'meet-owner')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.owner')}</a>
             <a href="#book-slot" onClick={(e) => smoothScroll(e, 'book-slot')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.appointments')}</a>
             <a href="#retail-buy" onClick={(e) => smoothScroll(e, 'retail-buy')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.buyRemedies')}</a>
@@ -394,7 +394,7 @@ export default function App() {
             >
               {t('nav.home')}
             </button>
-            <a href="#credibility" onClick={(e) => smoothScroll(e, 'credibility')} className="text-base font-semibold text-[#1A2421]">{t('nav.about')}</a>
+            <a href="#about" onClick={(e) => smoothScroll(e, 'about')} className="text-base font-semibold text-[#1A2421]">{t('nav.about')}</a>
             <a href="#meet-owner" onClick={(e) => smoothScroll(e, 'meet-owner')} className="text-base font-semibold text-[#1A2421]">{t('nav.owner')}</a>
             <a href="#book-slot" onClick={(e) => smoothScroll(e, 'book-slot')} className="text-base font-semibold text-[#1A2421]">{t('nav.appointments')}</a>
             <a href="#retail-buy" onClick={(e) => smoothScroll(e, 'retail-buy')} className="text-base font-semibold text-[#1A2421]">{t('nav.buyRemedies')}</a>
@@ -520,7 +520,7 @@ export default function App() {
 
       {/* 3. CREDIBILITY ROW */}
       {/* ABOUT US SECTION */}
-      <section className="py-16 bg-white/90 border-b border-[#EAE5DC] relative z-10">
+      <section id="about" className="py-16 bg-white/90 border-b border-[#EAE5DC] relative z-10">
         <div className="max-w-4xl mx-auto px-6 text-center space-y-4">
           <h2 className="text-2xl md:text-3xl font-extrabold text-[#1E293B] tracking-tight">{t('about.title')}</h2>
           <p className="text-sm md:text-base text-[#64748B] leading-relaxed">
