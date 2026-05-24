@@ -286,6 +286,51 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
     }
   };
 
+  // Price updaters for Retail Orders
+  const handleUpdateOrderPrice = async (order, newPrice) => {
+    if ((order.total_price || '').trim() === (newPrice || '').trim()) return;
+    setAdminActionLoadingId(order.id);
+    
+    // Optimistic Update
+    setAllOrders(prev => prev.map(ord => ord.id === order.id ? { ...ord, total_price: newPrice } : ord));
+    
+    try {
+      let docUpdated = false;
+      if (isFirebaseConfigured && !order.id.startsWith('Retail_Orders_')) {
+        try {
+          await updateDoc(doc(db, 'retail_orders', order.id), {
+            total_price: newPrice
+          });
+          docUpdated = true;
+        } catch (firestoreErr) {
+          console.warn("⚠️ Firestore price update failed in MyBookings, falling back to mockDb:", firestoreErr);
+        }
+      }
+      
+      if (!docUpdated) {
+        await mockDb.updateRetailOrderPrice(order.id, newPrice);
+      }
+      
+      // Sync with Google Sheets (fire-and-forget)
+      fetch('/api/updateSheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'update_order_price',
+          data: {
+            phone: order.phone,
+            timestamp: order.created_at ? new Date(order.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '',
+            price: newPrice
+          }
+        })
+      }).catch(e => console.error('Sheets price sync failed:', e));
+    } catch (err) {
+      console.error('Failed to update price:', err);
+    } finally {
+      setAdminActionLoadingId(null);
+    }
+  };
+
   // Status updaters for Appointments
   const handleUpdateAppointmentStatus = async (apt, newStatus) => {
     setAdminActionLoadingId(apt.id);
@@ -1244,8 +1289,23 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
 
                           <div className="border-t border-slate-800 pt-4 mt-2 space-y-3">
                             <div className="flex justify-between items-center text-xs font-bold text-slate-350">
-                              <span>{language === 'en' ? 'Total Price:' : 'कुल मूल्य:'}</span>
-                              <span className="text-teal-400 text-sm">₹{order.total_price}</span>
+                              <span>{language === 'en' ? 'Confirmed Price:' : 'पुष्टीकृत मूल्य:'}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-teal-500 font-bold">₹</span>
+                                <input
+                                  type="text"
+                                  key={order.id + '_' + order.total_price}
+                                  defaultValue={order.total_price}
+                                  placeholder="e.g. 250"
+                                  className="w-24 px-2 py-1 text-2xs bg-slate-950 border border-slate-800 rounded-lg text-teal-400 font-mono text-right focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition-all"
+                                  onBlur={(e) => handleUpdateOrderPrice(order, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.target.blur();
+                                    }
+                                  }}
+                                />
+                              </div>
                             </div>
                             
                             <div className="flex gap-2">

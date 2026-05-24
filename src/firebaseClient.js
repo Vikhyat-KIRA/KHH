@@ -143,6 +143,20 @@ const mockDb = {
     return JSON.parse(localStorage.getItem('bulk_orders') || '[]');
   },
 
+  // Update retail order price
+  updateRetailOrderPrice: async (id, price) => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const all = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+    const updated = all.map((order) => {
+      if (order.id === id) {
+        return { ...order, total_price: price };
+      }
+      return order;
+    });
+    localStorage.setItem('retail_orders', JSON.stringify(updated));
+    return true;
+  },
+
   // Update retail order status
   updateRetailOrderStatus: async (id, status) => {
     await new Promise((resolve) => setTimeout(resolve, 200));
