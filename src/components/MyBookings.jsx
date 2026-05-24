@@ -63,6 +63,10 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
     setIsAdminMode(initialAdminMode);
     if (initialAdminMode && isAuthenticated) {
       fetchAdminData();
+      const interval = setInterval(() => {
+        fetchAdminData(true);
+      }, 15000);
+      return () => clearInterval(interval);
     }
   }, [initialAdminMode, isAuthenticated]);
 
@@ -133,8 +137,8 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
   };
 
   // Admin Data Fetcher
-  async function fetchAdminData() {
-    setLoadingAdminData(true);
+  async function fetchAdminData(isAutoRefresh = false) {
+    if (!isAutoRefresh) setLoadingAdminData(true);
     try {
       let orders = [];
       let appointments = [];

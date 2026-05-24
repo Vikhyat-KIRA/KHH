@@ -63,8 +63,20 @@ const mockDb = {
     const cleanSearch = phoneStr.replace(/[^0-9]/g, '');
     if (!cleanSearch) return [];
     return all.filter((apt) => {
-      const cleanAptPhone = apt.patient_phone.replace(/[^0-9]/g, '');
+      const cleanAptPhone = (apt.patient_phone || '').replace(/[^0-9]/g, '');
       return cleanAptPhone.includes(cleanSearch) || cleanSearch.includes(cleanAptPhone);
+    });
+  },
+
+  // Queries retail orders matching a phone number
+  getRetailOrdersByPhone: async (phoneStr) => {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const all = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+    const cleanSearch = phoneStr.replace(/[^0-9]/g, '');
+    if (!cleanSearch) return [];
+    return all.filter((order) => {
+      const cleanOrderPhone = (order.phone || '').replace(/[^0-9]/g, '');
+      return cleanOrderPhone.includes(cleanSearch) || cleanSearch.includes(cleanOrderPhone);
     });
   },
 

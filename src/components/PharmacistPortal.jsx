@@ -36,8 +36,8 @@ export default function PharmacistPortal() {
   const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'success' | 'error' | 'mock'
   const [lastSync, setLastSync] = useState(null);
 
-  const fetchPortalData = async () => {
-    setIsLoading(true);
+  const fetchPortalData = async (isAutoRefresh = false) => {
+    if (!isAutoRefresh) setIsLoading(true);
     setSyncStatus('syncing');
     
     try {
@@ -74,6 +74,10 @@ export default function PharmacistPortal() {
 
   useEffect(() => {
     fetchPortalData();
+    const interval = setInterval(() => {
+      fetchPortalData(true);
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   // Reset search and status filter when switching tabs
