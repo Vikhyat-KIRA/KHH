@@ -130,7 +130,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
   };
 
   // Admin Data Fetcher
-  const fetchAdminData = async () => {
+  async function fetchAdminData() {
     setLoadingAdminData(true);
     try {
       let orders = [];
