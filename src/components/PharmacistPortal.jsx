@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Lock, RefreshCw, Package, Stethoscope, Briefcase, Clock, Search, ChevronDown, Download, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
+import { doc, updateDoc } from 'firebase/firestore';
 
 export default function PharmacistPortal() {
   const { language, t } = useLanguage();
@@ -11,6 +13,10 @@ export default function PharmacistPortal() {
   const [retailOrders, setRetailOrders] = useState([]);
   const [consultations, setConsultations] = useState([]);
   const [wholesaleQueries, setWholesaleQueries] = useState([]);
+  
+  // Search & Filtering State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   
   // Loading & Error State
   const [isLoading, setIsLoading] = useState(true);
@@ -57,12 +63,225 @@ export default function PharmacistPortal() {
     fetchPortalData();
   }, []);
 
-  // Format Helper
-  const renderStatus = (status) => {
-    const s = (status || 'Pending').toLowerCase();
-    if (s.includes('confirm') || s.includes('complet')) return <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-emerald-500/30">{language === 'en' ? 'Confirmed' : 'पुष्ट'}</span>;
-    if (s.includes('cancel')) return <span className="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-rose-500/30">{language === 'en' ? 'Cancelled' : 'रद्द'}</span>;
-    return <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-amber-500/30">{language === 'en' ? 'Pending' : 'लंबित'}</span>;
+  // Reset search and status filter when switching tabs
+  useEffect(() => {
+    setSearchTerm('');
+    setStatusFilter('ALL');
+  }, [activeTab]);
+
+  // Status updaters for Retail Orders in portal
+  const handleUpdatePortalOrderStatus = async (orderId, newStatus) => {
+    const order = retailOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    try {
+      if (isFirebaseConfigured) {
+        await updateDoc(doc(db, 'retail_orders', orderId), {
+          lead_status: newStatus,
+          status: newStatus
+        });
+      } else {
+        await mockDb.updateRetailOrderStatus(orderId, newStatus);
+      }
+
+      // Sync with Google Sheets (fire-and-forget)
+      fetch('/api/updateSheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'update_order_status',
+          data: {
+            phone: order.phone,
+            timestamp: order.timestamp || (order.created_at ? new Date(order.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''),
+            status: newStatus
+          }
+        })
+      }).catch(e => console.error('Sheets status sync failed:', e));
+
+      // Update local state immediately
+      setRetailOrders(prev => prev.map(ord => ord.id === orderId ? { ...ord, status: newStatus, lead_status: newStatus } : ord));
+    } catch (err) {
+      console.error('Failed to update retail order status from portal:', err);
+    }
+  };
+
+  // Status updaters for Appointments in portal
+  const handleUpdatePortalAptStatus = async (aptId, newStatus) => {
+    const apt = consultations.find(a => a.id === aptId);
+    if (!apt) return;
+
+    try {
+      if (isFirebaseConfigured) {
+        await updateDoc(doc(db, 'clinic_appointments', aptId), {
+          status: newStatus,
+          cancelled: newStatus === 'CANCELLED'
+        });
+      } else {
+        await mockDb.updateAppointmentStatus(aptId, newStatus);
+      }
+
+      // Sync with Google Sheets (fire-and-forget)
+      fetch('/api/updateSheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: newStatus === 'CANCELLED' ? 'cancel_appointment' : 'appointment',
+          data: {
+            patient_name: apt.patientName || apt.patient_name,
+            patient_phone: apt.patientPhone || apt.patient_phone,
+            appointment_date: apt.appointmentDate || apt.appointment_date,
+            time_slot: apt.timeSlot || apt.time_slot,
+            status: newStatus
+          }
+        })
+      }).catch(e => console.error('Sheets appointment sync failed:', e));
+
+      // Update local state immediately
+      setConsultations(prev => prev.map(a => a.id === aptId ? { ...a, status: newStatus, cancelled: newStatus === 'CANCELLED' } : a));
+    } catch (err) {
+      console.error('Failed to update appointment status from portal:', err);
+    }
+  };
+
+  // Filter lists dynamically based on search term and status filter
+  const getFilteredRetailOrders = () => {
+    return retailOrders.filter(order => {
+      // 1. Search filter (name, phone, address, medicines)
+      const matchesSearch = 
+        !searchTerm.trim() ||
+        (order.customerName || order.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.medicinesList || order.medicines || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+      // 2. Status filter
+      const statusVal = (order.status || order.lead_status || 'Pending').toLowerCase();
+      let matchesStatus = true;
+      if (statusFilter !== 'ALL') {
+        const f = statusFilter.toLowerCase();
+        if (f === 'pending') {
+          matchesStatus = statusVal === 'pending';
+        } else if (f === 'booked' || f === 'confirmed') {
+          matchesStatus = statusVal === 'booked' || statusVal.includes('confirm');
+        } else if (f === 'out for delivery') {
+          matchesStatus = statusVal.includes('out') || statusVal === 'shipped';
+        } else if (f === 'delivered') {
+          matchesStatus = statusVal === 'delivered' || statusVal.includes('complet');
+        } else if (f === 'cancelled') {
+          matchesStatus = statusVal.includes('cancel');
+        }
+      }
+
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  const getFilteredConsultations = () => {
+    return consultations.filter(apt => {
+      // 1. Search filter (patient name, phone)
+      const matchesSearch = 
+        !searchTerm.trim() ||
+        (apt.patientName || apt.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (apt.patientPhone || apt.patient_phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (apt.appointmentDate || apt.appointment_date || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (apt.timeSlot || apt.time_slot || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+      // 2. Status filter
+      const statusVal = (apt.status || (apt.cancelled ? 'cancelled' : 'Pending')).toLowerCase();
+      let matchesStatus = true;
+      if (statusFilter !== 'ALL') {
+        const f = statusFilter.toLowerCase();
+        if (f === 'pending') {
+          matchesStatus = statusVal === 'pending';
+        } else if (f === 'booked' || f === 'confirmed') {
+          matchesStatus = statusVal === 'confirmed' || statusVal === 'booked';
+        } else if (f === 'cancelled') {
+          matchesStatus = statusVal.includes('cancel');
+        } else {
+          matchesStatus = false;
+        }
+      }
+
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  const getFilteredWholesaleQueries = () => {
+    return wholesaleQueries.filter(query => {
+      const matchesSearch = 
+        !searchTerm.trim() ||
+        (query.companyName || query.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (query.contactName || query.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (query.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (query.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (query.requirements || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+      return matchesSearch;
+    });
+  };
+
+  // CSV Exporter for local data
+  const handleExportCSV = () => {
+    let headers = [];
+    let rows = [];
+    let filename = '';
+
+    if (activeTab === 'retail') {
+      const dataToExport = getFilteredRetailOrders();
+      headers = ['Timestamp', 'Customer Name', 'Phone', 'Email', 'Address', 'Medicines List', 'Total Price', 'Status'];
+      rows = dataToExport.map(order => [
+        order.timestamp || order.created_at || '',
+        order.customerName || order.name || '',
+        order.phone || '',
+        order.email || '',
+        (order.address || '').replace(/"/g, '""'),
+        (order.medicinesList || order.medicines || '').replace(/"/g, '""'),
+        order.totalEstimatedPrice || order.totalPrice || 'TBD',
+        order.status || order.lead_status || 'Pending'
+      ]);
+      filename = 'KHH_Retail_Orders.csv';
+    } else if (activeTab === 'consultations') {
+      const dataToExport = getFilteredConsultations();
+      headers = ['Timestamp', 'Patient Name', 'Patient Phone', 'Appointment Date', 'Time Slot', 'Status'];
+      rows = dataToExport.map(apt => [
+        apt.timestamp || apt.created_at || '',
+        apt.patientName || apt.patient_name || '',
+        apt.patientPhone || apt.patient_phone || '',
+        apt.appointmentDate || apt.appointment_date || '',
+        apt.timeSlot || apt.time_slot || '',
+        apt.status || (apt.cancelled ? 'CANCELLED' : 'Pending')
+      ]);
+      filename = 'KHH_Consultations.csv';
+    } else {
+      const dataToExport = getFilteredWholesaleQueries();
+      headers = ['Timestamp', 'Company Name', 'Contact Name', 'Phone', 'Email', 'Quantity', 'Requirements'];
+      rows = dataToExport.map(query => [
+        query.timestamp || query.created_at || '',
+        query.companyName || query.company_name || '',
+        query.contactName || query.name || '',
+        query.phone || '',
+        query.email || '',
+        query.estimatedQuantity || query.quantity || '',
+        (query.requirements || '').replace(/"/g, '""')
+      ]);
+      filename = 'KHH_Wholesale_Queries.csv';
+    }
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${val}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const renderActiveTable = () => {
@@ -75,8 +294,12 @@ export default function PharmacistPortal() {
       );
     }
 
+    const filteredRetail = getFilteredRetailOrders();
+    const filteredConsults = getFilteredConsultations();
+    const filteredWholesale = getFilteredWholesaleQueries();
+
     if (activeTab === 'retail') {
-      if (retailOrders.length === 0) return <EmptyState tab="Retail Orders" />;
+      if (filteredRetail.length === 0) return <EmptyState tab="Retail Orders" isFiltered={retailOrders.length > 0} />;
       return (
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
@@ -87,11 +310,12 @@ export default function PharmacistPortal() {
                 <th className="p-4 font-bold">{language === 'en' ? 'Contact' : 'संपर्क'}</th>
                 <th className="p-4 font-bold">{language === 'en' ? 'Medicines (Est. Value)' : 'दवाएं (अनुमानित मूल्य)'}</th>
                 <th className="p-4 font-bold">{t('portal.totalPrice')}</th>
-                <th className="p-4 font-bold rounded-tr-2xl">{t('portal.status')}</th>
+                <th className="p-4 font-bold">{t('portal.status')}</th>
+                <th className="p-4 font-bold rounded-tr-2xl">{language === 'en' ? 'Action' : 'कार्रवाई'}</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-[#1E293B]/50">
-              {retailOrders.map((order, i) => (
+              {filteredRetail.map((order, i) => (
                 <tr key={i} className="hover:bg-[#1E293B]/30 transition-colors">
                   <td className="p-4 text-xs text-slate-400">{order.timestamp || order.created_at}</td>
                   <td className="p-4 font-bold text-white">{order.customerName || order.name}</td>
@@ -106,7 +330,23 @@ export default function PharmacistPortal() {
                     {order.estimatedMedicinesPrice && <div className="text-[10px] text-emerald-400 font-bold mt-0.5">Est. {order.estimatedMedicinesPrice}</div>}
                   </td>
                   <td className="p-4 font-bold text-white">{order.totalEstimatedPrice || order.totalPrice || 'TBD'}</td>
-                  <td className="p-4">{renderStatus(order.status)}</td>
+                  <td className="p-4">{renderStatus(order.status || order.lead_status)}</td>
+                  <td className="p-4">
+                    <div className="relative inline-block w-40">
+                      <select
+                        value={order.status || order.lead_status || 'Pending'}
+                        onChange={(e) => handleUpdatePortalOrderStatus(order.id, e.target.value)}
+                        className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
+                      >
+                        <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ {language === 'en' ? 'Pending' : 'लंबित'}</option>
+                        <option value="Booked" className="bg-[#0A1020] text-teal-400">📦 {language === 'en' ? 'Booked' : 'बुक किया गया'}</option>
+                        <option value="Out for Delivery" className="bg-[#0A1020] text-amber-500">🚚 {language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}</option>
+                        <option value="Delivered" className="bg-[#0A1020] text-emerald-400">✅ {language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}</option>
+                        <option value="Cancelled" className="bg-[#0A1020] text-rose-400">❌ {language === 'en' ? 'Cancelled' : 'रद्द'}</option>
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -116,7 +356,7 @@ export default function PharmacistPortal() {
     }
 
     if (activeTab === 'consultations') {
-      if (consultations.length === 0) return <EmptyState tab="Consultations" />;
+      if (filteredConsults.length === 0) return <EmptyState tab="Consultations" isFiltered={consultations.length > 0} />;
       return (
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
@@ -127,11 +367,12 @@ export default function PharmacistPortal() {
                 <th className="p-4 font-bold">{t('portal.phone')}</th>
                 <th className="p-4 font-bold">{t('portal.date')}</th>
                 <th className="p-4 font-bold">{t('portal.slot')}</th>
-                <th className="p-4 font-bold rounded-tr-2xl">{t('portal.status')}</th>
+                <th className="p-4 font-bold">{t('portal.status')}</th>
+                <th className="p-4 font-bold rounded-tr-2xl">{language === 'en' ? 'Action' : 'कार्रवाई'}</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-[#1E293B]/50">
-              {consultations.map((apt, i) => (
+              {filteredConsults.map((apt, i) => (
                 <tr key={i} className="hover:bg-[#1E293B]/30 transition-colors">
                   <td className="p-4 text-xs text-slate-400">{apt.timestamp || apt.created_at}</td>
                   <td className="p-4 font-bold text-white">{apt.patientName || apt.patient_name}</td>
@@ -139,6 +380,20 @@ export default function PharmacistPortal() {
                   <td className="p-4 text-slate-300 font-medium">{apt.appointmentDate || apt.appointment_date}</td>
                   <td className="p-4 text-white font-bold">{apt.timeSlot || apt.time_slot}</td>
                   <td className="p-4">{renderStatus(apt.status)}</td>
+                  <td className="p-4">
+                    <div className="relative inline-block w-36">
+                      <select
+                        value={apt.status || (apt.cancelled ? 'CANCELLED' : 'Pending')}
+                        onChange={(e) => handleUpdatePortalAptStatus(apt.id, e.target.value)}
+                        className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
+                      >
+                        <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ {language === 'en' ? 'Pending' : 'लंबित'}</option>
+                        <option value="Confirmed" className="bg-[#0A1020] text-emerald-400">✅ {language === 'en' ? 'Confirmed' : 'पुष्ट'}</option>
+                        <option value="CANCELLED" className="bg-[#0A1020] text-rose-400">❌ {language === 'en' ? 'Cancelled' : 'रद्द'}</option>
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -148,7 +403,7 @@ export default function PharmacistPortal() {
     }
 
     if (activeTab === 'wholesale') {
-      if (wholesaleQueries.length === 0) return <EmptyState tab="Wholesale Queries" />;
+      if (filteredWholesale.length === 0) return <EmptyState tab="Wholesale Queries" isFiltered={wholesaleQueries.length > 0} />;
       return (
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
@@ -162,7 +417,7 @@ export default function PharmacistPortal() {
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-[#1E293B]/50">
-              {wholesaleQueries.map((query, i) => (
+              {filteredWholesale.map((query, i) => (
                 <tr key={i} className="hover:bg-[#1E293B]/30 transition-colors">
                   <td className="p-4 text-xs text-slate-400">{query.timestamp || query.created_at}</td>
                   <td className="p-4">
@@ -188,14 +443,16 @@ export default function PharmacistPortal() {
     }
   };
 
-  const EmptyState = ({ tab }) => {
+  const EmptyState = ({ tab, isFiltered }) => {
     const getEmptyTitle = () => {
+      if (isFiltered) return language === 'en' ? 'No Matching Records Found' : 'कोई मेल खाने वाले रिकॉर्ड नहीं मिले';
       if (tab === 'Retail Orders') return language === 'en' ? 'No Retail Orders Logged Yet' : 'अभी तक कोई खुदरा ऑर्डर दर्ज नहीं किया गया है';
       if (tab === 'Consultations') return language === 'en' ? 'No Consultations Logged Yet' : 'अभी तक कोई परामर्श दर्ज नहीं किया गया है';
       return language === 'en' ? 'No Wholesale Queries Logged Yet' : 'अभी तक कोई थोक पूछताछ दर्ज नहीं की गई है';
     };
 
     const getEmptyDesc = () => {
+      if (isFiltered) return language === 'en' ? 'Try adjusting your search query or status filter.' : 'कृपया अपना खोज शब्द या स्थिति फ़िल्टर बदलने का प्रयास करें।';
       if (tab === 'Retail Orders') return language === 'en' ? 'Newly placed orders will appear here automatically. Only the latest 20 items are displayed.' : 'नए ऑर्डर यहां स्वचालित रूप से दिखाई देंगे। केवल नवीनतम 20 आइटम प्रदर्शित किए जाते हैं।';
       if (tab === 'Consultations') return language === 'en' ? 'Newly booked appointments will appear here automatically. Only the latest 20 items are displayed.' : 'नए बुक किए गए अपॉइंटमेंट यहां स्वचालित रूप से दिखाई देंगे। केवल नवीनतम 20 आइटम प्रदर्शित किए जाते हैं।';
       return language === 'en' ? 'Newly placed inquiries will appear here automatically. Only the latest 20 items are displayed.' : 'नई पूछताछ यहां स्वचालित रूप से दिखाई देगी। केवल नवीनतम 20 आइटम प्रदर्शित किए जाते हैं।';
@@ -327,6 +584,8 @@ export default function PharmacistPortal() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input 
               type="text" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={
                 activeTab === 'retail' 
                   ? (language === 'en' ? "Search orders by name, phone, or address..." : "नाम, फोन या पते से ऑर्डर खोजें...") 
@@ -337,16 +596,33 @@ export default function PharmacistPortal() {
               className="w-full bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-slate-550 focus:outline-none focus:border-[#0F766E] transition-colors shadow-lg"
             />
           </div>
-          <div className="relative">
-            <select className="appearance-none bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-4 pr-10 text-sm text-white font-semibold focus:outline-none focus:border-[#0F766E] transition-colors cursor-pointer outline-none shadow-lg">
-              <option>{language === 'en' ? 'Show All Statuses' : 'सभी स्थितियां दिखाएं'}</option>
-              <option>{language === 'en' ? 'Pending' : 'लंबित'}</option>
-              <option>{language === 'en' ? 'Confirmed' : 'पुष्ट'}</option>
-              <option>{language === 'en' ? 'Cancelled' : 'रद्द'}</option>
-            </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-          </div>
-          <button className="flex items-center gap-2 bg-[#111827] border border-[#1E293B] hover:border-slate-500 rounded-xl py-3 px-6 text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-all shadow-lg select-none cursor-pointer">
+          {activeTab !== 'wholesale' && (
+            <div className="relative">
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="appearance-none bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-4 pr-10 text-sm text-white font-semibold focus:outline-none focus:border-[#0F766E] transition-colors cursor-pointer outline-none shadow-lg"
+              >
+                <option value="ALL">{language === 'en' ? 'Show All Statuses' : 'सभी स्थितियां दिखाएं'}</option>
+                <option value="Pending">{language === 'en' ? 'Pending' : 'लंबित'}</option>
+                {activeTab === 'retail' ? (
+                  <>
+                    <option value="Booked">{language === 'en' ? 'Booked' : 'बुक किया गया'}</option>
+                    <option value="Out for Delivery">{language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}</option>
+                    <option value="Delivered">{language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}</option>
+                  </>
+                ) : (
+                  <option value="Confirmed">{language === 'en' ? 'Confirmed' : 'पुष्ट'}</option>
+                )}
+                <option value="Cancelled">{language === 'en' ? 'Cancelled' : 'रद्द'}</option>
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+            </div>
+          )}
+          <button 
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 bg-[#111827] border border-[#1E293B] hover:border-slate-500 rounded-xl py-3 px-6 text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-all shadow-lg select-none cursor-pointer"
+          >
             <Download className="w-4 h-4 text-blue-400" />
             {language === 'en' ? 'Export CSV' : 'सीएसवी निर्यात करें'}
           </button>

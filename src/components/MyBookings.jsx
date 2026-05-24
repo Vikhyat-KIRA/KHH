@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Calendar, Clock, User, Phone, CheckCircle2, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2, Lock } from 'lucide-react';
+import { Search, Calendar, Clock, User, Phone, CheckCircle2, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2, Lock, Package } from 'lucide-react';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
@@ -9,6 +9,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
   const [searchPhone, setSearchPhone] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
+  const [searchOrderResults, setSearchOrderResults] = useState(null);
   const [searchError, setSearchError] = useState('');
 
   // Cancel confirmation state
@@ -260,6 +261,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
     e.preventDefault();
     setSearchError('');
     setSearchResults(null);
+    setSearchOrderResults(null);
     setCancelError('');
 
     const formattedSearch = searchPhone.trim();
@@ -280,25 +282,40 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
 
     setSearching(true);
     try {
-      if (isFirebaseConfigured) {
-        const appointmentsRef = collection(db, 'clinic_appointments');
-        const q = query(appointmentsRef, where('patient_phone', '==', formattedSearch));
-        const querySnapshot = await getDocs(q);
+      let apptResults = [];
+      let orderResults = [];
 
-        const results = [];
+      if (isFirebaseConfigured) {
+        // Query Firestore for appointments
+        const appointmentsRef = collection(db, 'clinic_appointments');
+        const q1 = query(appointmentsRef, where('patient_phone', '==', formattedSearch));
+        const querySnapshot = await getDocs(q1);
         querySnapshot.forEach((docSnap) => {
-          results.push({ id: docSnap.id, ...docSnap.data() });
+          apptResults.push({ id: docSnap.id, ...docSnap.data() });
         });
-        results.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
-        setSearchResults(results);
+        apptResults.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+
+        // Query Firestore for B2C retail orders
+        const ordersRef = collection(db, 'retail_orders');
+        const q2 = query(ordersRef, where('phone', '==', formattedSearch));
+        const ordersSnapshot = await getDocs(q2);
+        ordersSnapshot.forEach((docSnap) => {
+          orderResults.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        orderResults.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       } else {
-        const results = await mockDb.getAppointmentsByPhone(formattedSearch);
-        results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        setSearchResults(results);
+        apptResults = await mockDb.getAppointmentsByPhone(formattedSearch);
+        apptResults.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+        orderResults = await mockDb.getRetailOrdersByPhone(formattedSearch);
+        orderResults.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       }
+
+      setSearchResults(apptResults);
+      setSearchOrderResults(orderResults);
     } catch (err) {
       console.error('Search query failure:', err);
-      setSearchError(language === 'en' ? 'Failed to retrieve bookings. Please verify your connection.' : 'बुक किए गए स्लॉट प्राप्त करने में विफल। कृपया अपने इंटरनेट कनेक्शन की जांच करें।');
+      setSearchError(language === 'en' ? 'Failed to retrieve records. Please verify your connection.' : 'रिकॉर्ड प्राप्त करने में विफल। कृपया अपने इंटरनेट कनेक्शन की जांच करें।');
     } finally {
       setSearching(false);
     }
@@ -522,6 +539,112 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
             )}
           </div>
         )}
+      </div>
+    );
+  };
+
+  const renderOrderCard = (order) => {
+    const status = order.lead_status || order.status || 'Pending';
+    const isCancelled = status.toLowerCase() === 'cancelled';
+    const isOutForDelivery = status.toLowerCase().includes('out');
+    const isDelivered = status.toLowerCase().includes('deliver') || status.toLowerCase().includes('complet');
+
+    return (
+      <div
+        key={order.id || `${order.created_at}`}
+        className={`bg-white border rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden transition-all duration-200 hover:shadow-md ${
+          isCancelled ? 'border-slate-200 opacity-60 bg-slate-50/50' : 'border-[#EAE5DC]'
+        }`}
+      >
+        {/* Top colour bar */}
+        <div className={`absolute top-0 left-0 right-0 h-1 ${
+          isCancelled ? 'bg-rose-500' :
+          isDelivered ? 'bg-emerald-500' :
+          isOutForDelivery ? 'bg-amber-500' : 'bg-teal-500'
+        }`}></div>
+
+        <div className="flex items-center justify-between border-b border-[#EAE5DC]/60 pb-3">
+          <div className="flex items-center gap-2 text-slate-700">
+            <Package className="w-4 h-4 text-[#0F766E] shrink-0" />
+            <span className="font-bold text-xs uppercase tracking-wider text-slate-550 select-none">
+              {language === 'en' ? 'Remedies Delivery' : 'दवा होम डिलीवरी'}
+            </span>
+          </div>
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
+            isCancelled ? 'bg-rose-50 border-rose-200 text-rose-700' :
+            isDelivered ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+            isOutForDelivery ? 'bg-amber-50 border-amber-200 text-amber-700' :
+            'bg-teal-50 border-teal-200 text-teal-700 animate-pulse'
+          }`}>
+            {isCancelled ? (language === 'en' ? 'Cancelled' : 'रद्द') :
+             isDelivered ? (language === 'en' ? 'Delivered' : 'डिलिवर हो गया') :
+             isOutForDelivery ? (language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर') :
+             (language === 'en' ? 'Booked' : 'बुक किया गया')}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5 text-slate-600">
+              <User className="w-4 h-4 text-slate-400 shrink-0" />
+              <div>
+                <span className="block text-[9px] uppercase tracking-wider font-bold text-slate-400">{language === 'en' ? 'Customer Name' : 'ग्राहक का नाम'}</span>
+                <span className="font-bold text-slate-900">{order.customer_name || order.name}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 text-slate-600">
+              <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+              <div>
+                <span className="block text-[9px] uppercase tracking-wider font-bold text-slate-400">{language === 'en' ? 'Contact Phone' : 'संपर्क फोन'}</span>
+                <span className="font-semibold text-slate-800">{order.phone}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5 text-slate-600">
+              <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+              <div>
+                <span className="block text-[9px] uppercase tracking-wider font-bold text-slate-400">{language === 'en' ? 'Ordered On' : 'ऑर्डर की तिथि'}</span>
+                <span className="font-semibold text-slate-800">
+                  {order.created_at ? new Date(order.created_at).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                  }) : 'Unknown'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 text-slate-600">
+              <span className="w-4 text-slate-400 font-bold shrink-0 text-center">₹</span>
+              <div>
+                <span className="block text-[9px] uppercase tracking-wider font-bold text-slate-400">{language === 'en' ? 'Total Price' : 'कुल मूल्य'}</span>
+                <span className="font-extrabold text-[#0F766E]">₹{order.total_price || order.totalEstimatedPrice}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-span-1 md:col-span-2 space-y-1">
+            <span className="block text-[9px] uppercase tracking-wider font-bold text-slate-400">{language === 'en' ? 'Delivery Address' : 'डिलिवरी का पता'}</span>
+            <span className="font-medium text-slate-700 block bg-slate-50 p-2 rounded-lg border border-slate-100">{order.address}</span>
+          </div>
+
+          <div className="col-span-1 md:col-span-2 space-y-1">
+            <span className="block text-[9px] uppercase tracking-wider font-bold text-slate-400">{language === 'en' ? 'Remedies Ordered' : 'ऑर्डर की गई दवाएं'}</span>
+            <div className="bg-slate-950 border border-slate-900 text-slate-350 font-mono text-[10px] p-2.5 rounded-lg whitespace-pre-wrap leading-tight">
+              {order.medicines_list || order.medicines}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-[10px] leading-relaxed font-medium text-slate-500">
+          💡 <strong>{language === 'en' ? 'Delivery Update:' : 'डिलिवरी अपडेट:'}</strong>{' '}
+          {isDelivered 
+            ? (language === 'en' ? 'Your homeopathic dilutions have been successfully delivered to your Ranchi address.' : 'आपकी होम्योपैथिक दवाएं आपके रांची के पते पर सफलतापूर्वक वितरित कर दी गई हैं।')
+            : isOutForDelivery 
+            ? (language === 'en' ? 'Remedies are with our courier agent and out for delivery in Ranchi city limits.' : 'दवाएं हमारे कूरियर एजेंट के साथ हैं और रांची शहर में वितरण के लिए बाहर निकली हैं।')
+            : (language === 'en' ? 'Order booked successfully. Sourcing remedies at our Upper Bazar pharmacy counter.' : 'ऑर्डर सफलतापूर्वक बुक हो गया। हमारे अपर बाजार फार्मेसी काउंटर पर दवाएं तैयार की जा रही हैं।')}
+        </div>
       </div>
     );
   };
@@ -885,8 +1008,8 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                       return (
                         <div key={order.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left">
                           <div className={`absolute top-0 left-0 right-0 h-1 ${
-                            status === 'Completed' ? 'bg-emerald-500' :
-                            status === 'Shipped' ? 'bg-amber-500' :
+                            status === 'Delivered' || status === 'Completed' ? 'bg-emerald-500' :
+                            status === 'Out for Delivery' || status === 'Shipped' ? 'bg-amber-500' :
                             status === 'Cancelled' ? 'bg-rose-500' : 'bg-teal-500'
                           }`}></div>
 
@@ -897,15 +1020,15 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                                 <span className="font-extrabold text-white text-sm">{order.customer_name}</span>
                               </div>
                               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                                status === 'Completed' ? 'bg-emerald-950/40 border-emerald-900/50 text-emerald-400' :
-                                status === 'Shipped' ? 'bg-amber-950/40 border-amber-900/50 text-amber-400' :
-                                status === 'Cancelled' ? 'bg-rose-950/40 border-rose-900/50 text-rose-400' :
-                                'bg-teal-950/40 border-teal-900/50 text-teal-400 animate-pulse'
+                                status === 'Delivered' || status === 'Completed' ? 'bg-emerald-950/40 border-emerald-900/50 text-emerald-450 border-emerald-900/30' :
+                                status === 'Out for Delivery' || status === 'Shipped' ? 'bg-amber-950/40 border-amber-900/50 text-amber-455 border-amber-900/30' :
+                                status === 'Cancelled' ? 'bg-rose-950/40 border-rose-900/50 text-rose-455 border-rose-900/30' :
+                                'bg-teal-950/40 border-teal-900/50 text-teal-455 border-teal-900/30 animate-pulse'
                               }`}>
-                                {status === 'Pending' ? (language === 'en' ? 'Pending' : 'लंबित') :
-                                 status === 'Shipped' ? (language === 'en' ? 'Shipped' : 'भेजा गया') :
-                                 status === 'Completed' ? (language === 'en' ? 'Completed' : 'पूर्ण') : 
-                                 (language === 'en' ? 'Cancelled' : 'रद्द')}
+                                {status === 'Pending' ? (language === 'en' ? 'Booked' : 'बुक किया गया') :
+                                 status === 'Out for Delivery' || status === 'Shipped' ? (language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर') :
+                                 status === 'Delivered' || status === 'Completed' ? (language === 'en' ? 'Delivered' : 'डिलिवर हो गया') : 
+                                 status === 'Cancelled' ? (language === 'en' ? 'Cancelled' : 'रद्द') : status}
                               </span>
                             </div>
 
@@ -943,18 +1066,18 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                               <button
                                 type="button"
                                 disabled={isUpdating}
-                                onClick={() => handleUpdateOrderStatus(order, 'Shipped')}
+                                onClick={() => handleUpdateOrderStatus(order, 'Out for Delivery')}
                                 className="flex-1 py-1.5 px-2 bg-amber-950/20 hover:bg-amber-950/40 text-amber-405 border border-amber-900/30 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
                               >
-                                🚚 {language === 'en' ? 'Ship' : 'भेजें'}
+                                🚚 {language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}
                               </button>
                               <button
                                 type="button"
                                 disabled={isUpdating}
-                                onClick={() => handleUpdateOrderStatus(order, 'Completed')}
+                                onClick={() => handleUpdateOrderStatus(order, 'Delivered')}
                                 className="flex-1 py-1.5 px-2 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-455 border border-emerald-900/30 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
                               >
-                                ✅ {language === 'en' ? 'Complete' : 'पूरा करें'}
+                                ✅ {language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}
                               </button>
                               <button
                                 type="button"
@@ -1208,23 +1331,48 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
           </form>
 
           {/* Search Results */}
-          {searchResults !== null && (
-            <div className="pt-4 border-t border-slate-100 space-y-4">
-              <h4 className="text-2xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                {searchResults.length === 0 
-                  ? (language === 'en' ? 'No appointments found' : 'कोई अपॉइंटमेंट नहीं मिला') 
-                  : t('bookings.foundBookings', { count: searchResults.length })}
-              </h4>
-
-              {searchResults.length === 0 ? (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-center space-y-1">
-                  <p className="text-xs font-bold text-slate-700">{language === 'en' ? 'No Appointments Found' : 'कोई अपॉइंटमेंट नहीं मिला'}</p>
-                  <p className="text-3xs text-slate-400">{t('bookings.tryAnother')}</p>
+          {(searchResults !== null || searchOrderResults !== null) && (
+            <div className="pt-4 border-t border-slate-100 space-y-6">
+              {searchResults?.length === 0 && searchOrderResults?.length === 0 ? (
+                <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl text-center space-y-2">
+                  <AlertCircle className="w-8 h-8 text-slate-450 mx-auto" />
+                  <p className="text-sm font-bold text-slate-700">
+                    {language === 'en' ? 'No active records found' : 'कोई सक्रिय रिकॉर्ड नहीं मिला'}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {language === 'en' 
+                      ? 'We could not find any active consultations or delivery orders for this phone number.'
+                      : 'हमें इस फोन नंबर के लिए कोई सक्रिय परामर्श या वितरण ऑर्डर नहीं मिला।'}
+                  </p>
+                  <p className="text-3xs text-slate-455 uppercase font-black tracking-widest pt-2">
+                    {t('bookings.tryAnother')}
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
-                  {searchResults.map(renderBookingCard)}
+                <div className="space-y-8 text-left">
+                  {/* Appointments Section */}
+                  {searchResults && searchResults.length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="text-2xs font-extrabold text-[#115E59] uppercase tracking-widest flex items-center gap-2 border-b border-[#EAE5DC]/60 pb-2 select-none">
+                        🩺 {language === 'en' ? 'OPD Doctor Consultations' : 'ओपीडी डॉक्टर परामर्श'} ({searchResults.length})
+                      </h4>
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                        {searchResults.map(renderBookingCard)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* B2C Retail Orders Section */}
+                  {searchOrderResults && searchOrderResults.length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="text-2xs font-extrabold text-[#115E59] uppercase tracking-widest flex items-center gap-2 border-b border-[#EAE5DC]/60 pb-2 select-none">
+                        📦 {language === 'en' ? 'Remedies Home Delivery' : 'दवा होम डिलीवरी'} ({searchOrderResults.length})
+                      </h4>
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                        {searchOrderResults.map(renderOrderCard)}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

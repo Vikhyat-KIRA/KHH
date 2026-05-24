@@ -138,6 +138,64 @@ export default async function handler(req, res) {
         data.totalPrice,
         'Pending'
       ]];
+    } else if (type === 'update_order_status') {
+      const searchPhone = (data.phone || '').trim();
+      const searchTimestamp = (data.timestamp || '').trim();
+      const newStatus = (data.status || 'Pending').trim();
+
+      targetTab = 'Retail_Orders';
+
+      if (!sheetTitles.includes(targetTab)) {
+        return res.status(200).json({ status: 'not_found', message: `Sheet tab ${targetTab} does not exist.` });
+      }
+
+      const readRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: `${targetTab}!A:K`,
+      });
+
+      const rows = readRes.data.values || [];
+      let matchRowIndex = -1;
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const rowPhone = (row[2] || '').trim();
+        const rowTimestamp = (row[0] || '').trim();
+        if (
+          rowPhone === searchPhone &&
+          (rowTimestamp === searchTimestamp || rowTimestamp.includes(searchTimestamp) || searchTimestamp.includes(rowTimestamp))
+        ) {
+          matchRowIndex = i + 1;
+          break;
+        }
+      }
+
+      if (matchRowIndex === -1) {
+        // Fallback: match latest row with the same phone
+        for (let i = rows.length - 1; i >= 1; i--) {
+          const row = rows[i];
+          const rowPhone = (row[2] || '').trim();
+          if (rowPhone === searchPhone) {
+            matchRowIndex = i + 1;
+            break;
+          }
+        }
+      }
+
+      if (matchRowIndex === -1) {
+        console.warn('Update status: no matching row found in sheet for', { searchPhone, searchTimestamp });
+        return res.status(200).json({ status: 'not_found', message: 'Order row not found.' });
+      }
+
+      // Column K is the 11th column (Status)
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: `${targetTab}!K${matchRowIndex}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [[newStatus]] },
+      });
+
+      return res.status(200).json({ status: 'success', data: { message: `Order status updated to ${newStatus} at row ${matchRowIndex}.` } });
     } else {
       return res.status(400).json({ message: 'Invalid payload type' });
     }

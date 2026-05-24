@@ -103,11 +103,58 @@ const mockDb = {
     const newOrder = {
       id: 'mock_retail_' + Math.random().toString(36).substr(2, 9),
       ...order,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      lead_status: 'Pending' // Initial state
     };
     all.push(newOrder);
     localStorage.setItem('retail_orders', JSON.stringify(all));
     return newOrder;
+  },
+
+  // Get all retail orders
+  getAllRetailOrders: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return JSON.parse(localStorage.getItem('retail_orders') || '[]');
+  },
+
+  // Get all appointments
+  getAllAppointments: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
+  },
+
+  // Get all bulk orders
+  getAllBulkOrders: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return JSON.parse(localStorage.getItem('bulk_orders') || '[]');
+  },
+
+  // Update retail order status
+  updateRetailOrderStatus: async (id, status) => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const all = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+    const updated = all.map((order) => {
+      if (order.id === id) {
+        return { ...order, lead_status: status, status: status };
+      }
+      return order;
+    });
+    localStorage.setItem('retail_orders', JSON.stringify(updated));
+    return true;
+  },
+
+  // Update appointment status
+  updateAppointmentStatus: async (id, status) => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const all = JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
+    const updated = all.map((apt) => {
+      if (apt.id === id) {
+        return { ...apt, status: status, cancelled: status === 'CANCELLED' };
+      }
+      return apt;
+    });
+    localStorage.setItem('clinic_appointments', JSON.stringify(updated));
+    return true;
   }
 };
 
