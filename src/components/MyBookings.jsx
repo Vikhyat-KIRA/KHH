@@ -143,59 +143,126 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
       let orders = [];
       let appointments = [];
       let b2bQueries = [];
+      let fetchedSuccessfully = false;
       
       if (isFirebaseConfigured) {
-        // Query Firestore for all retail orders
-        const ordersSnapshot = await getDocs(collection(db, 'retail_orders'));
-        ordersSnapshot.forEach((docSnap) => {
-          orders.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        
-        // Query Firestore for all clinic appointments
-        const aptsSnapshot = await getDocs(collection(db, 'clinic_appointments'));
-        aptsSnapshot.forEach((docSnap) => {
-          appointments.push({ id: docSnap.id, ...docSnap.data() });
-        });
+        try {
+          // Query Firestore for all retail orders
+          const ordersSnapshot = await getDocs(collection(db, 'retail_orders'));
+          ordersSnapshot.forEach((docSnap) => {
+            orders.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          
+          // Query Firestore for all clinic appointments
+          const aptsSnapshot = await getDocs(collection(db, 'clinic_appointments'));
+          aptsSnapshot.forEach((docSnap) => {
+            appointments.push({ id: docSnap.id, ...docSnap.data() });
+          });
 
-        // Query Firestore for all B2B queries
-        const b2bSnapshot = await getDocs(collection(db, 'bulk_orders'));
-        b2bSnapshot.forEach((docSnap) => {
-          b2bQueries.push({ id: docSnap.id, ...docSnap.data() });
-        });
-      } else {
+          // Query Firestore for all B2B queries
+          const b2bSnapshot = await getDocs(collection(db, 'bulk_orders'));
+          b2bSnapshot.forEach((docSnap) => {
+            b2bQueries.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          
+          fetchedSuccessfully = true;
+        } catch (firestoreErr) {
+          console.warn("⚠️ Firestore admin load failed, attempting Google Sheets / mockDb fallback:", firestoreErr);
+        }
+      }
+      
+      if (!fetchedSuccessfully) {
+        try {
+          const response = await fetch('/api/readSheets');
+          const result = await response.json();
+          if (result.status === 'success' && result.data) {
+            orders = result.data.retailOrders || [];
+            appointments = result.data.appointments || [];
+            b2bQueries = result.data.b2bQueries || [];
+            fetchedSuccessfully = true;
+          }
+        } catch (sheetErr) {
+          console.warn("⚠️ Google Sheets fallback failed for admin logs:", sheetErr);
+        }
+      }
+
+      if (!fetchedSuccessfully) {
         orders = await mockDb.getAllRetailOrders();
         appointments = await mockDb.getAllAppointments();
         b2bQueries = await mockDb.getAllBulkOrders();
       }
+
+      // Normalize fields so MyBookings table/cards render cleanly in both modes!
+      const normalizedOrders = orders.map(o => ({
+        id: o.id,
+        phone: o.phone || '',
+        email: o.email || '',
+        address: o.address || '',
+        customer_name: o.customer_name || o.customerName || o.name || '',
+        medicines_list: o.medicines_list || o.medicinesList || o.medicines || '',
+        total_price: o.total_price || o.totalEstimatedPrice || o.totalPrice || 'TBD',
+        lead_status: o.lead_status || o.status || 'Pending',
+        created_at: o.created_at || o.timestamp || ''
+      }));
+
+      const normalizedApts = appointments.map(a => ({
+        id: a.id,
+        patient_name: a.patient_name || a.patientName || '',
+        patient_phone: a.patient_phone || a.patientPhone || '',
+        appointment_date: a.appointment_date || a.appointmentDate || '',
+        time_slot: a.time_slot || a.timeSlot || '',
+        status: a.status || (a.cancelled ? 'CANCELLED' : 'Pending'),
+        cancelled: a.cancelled || a.status === 'CANCELLED',
+        created_at: a.created_at || a.timestamp || ''
+      }));
+
+      const normalizedBulk = b2bQueries.map(q => ({
+        id: q.id,
+        client_name: q.client_name || q.contactName || q.name || '',
+        company_name: q.company_name || q.companyName || '',
+        phone: q.phone || '',
+        email: q.email || '',
+        estimated_quantity: q.estimated_quantity || q.estimatedQuantity || q.quantity || '',
+        requirements_text: q.requirements_text || q.requirements || '',
+        created_at: q.created_at || q.timestamp || ''
+      }));
       
       // Sort: newest first
-      orders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      normalizedOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      normalizedApts.sort((a, b) => new Date(b.appointment_date || 0) - new Date(a.appointment_date || 0));
+      normalizedBulk.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       
-      // Sort appointments by appointment date descending
-      appointments.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
-
-      // Sort B2B queries by created_at descending
-      b2bQueries.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-      
-      setAllOrders(orders);
-      setAllAppointments(appointments);
-      setAllB2BQueries(b2bQueries);
+      setAllOrders(normalizedOrders);
+      setAllAppointments(normalizedApts);
+      setAllB2BQueries(normalizedBulk);
     } catch (err) {
       console.error('Failed to load admin logs:', err);
     } finally {
       setLoadingAdminData(false);
     }
-  };
+  }
 
   // Status updaters for Retail Orders
   const handleUpdateOrderStatus = async (order, newStatus) => {
     setAdminActionLoadingId(order.id);
+    // Optimistic Update
+    setAllOrders(prev => prev.map(ord => ord.id === order.id ? { ...ord, lead_status: newStatus, status: newStatus } : ord));
+    
     try {
-      if (isFirebaseConfigured) {
-        await updateDoc(doc(db, 'retail_orders', order.id), {
-          lead_status: newStatus
-        });
-      } else {
+      let docUpdated = false;
+      if (isFirebaseConfigured && !order.id.startsWith('Retail_Orders_')) {
+        try {
+          await updateDoc(doc(db, 'retail_orders', order.id), {
+            lead_status: newStatus,
+            status: newStatus
+          });
+          docUpdated = true;
+        } catch (firestoreErr) {
+          console.warn("⚠️ Firestore update failed in MyBookings, falling back to mockDb:", firestoreErr);
+        }
+      }
+      
+      if (!docUpdated) {
         await mockDb.updateRetailOrderStatus(order.id, newStatus);
       }
       
@@ -212,9 +279,6 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
           }
         })
       }).catch(e => console.error('Sheets status sync failed:', e));
-      
-      // Update local state immediately
-      setAllOrders(prev => prev.map(ord => ord.id === order.id ? { ...ord, lead_status: newStatus } : ord));
     } catch (err) {
       console.error('Failed to update status:', err);
     } finally {
@@ -225,34 +289,42 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
   // Status updaters for Appointments
   const handleUpdateAppointmentStatus = async (apt, newStatus) => {
     setAdminActionLoadingId(apt.id);
+    // Optimistic Update
+    setAllAppointments(prev => prev.map(a => a.id === apt.id ? { ...a, status: newStatus, cancelled: newStatus === 'CANCELLED' } : a));
+
     try {
-      if (isFirebaseConfigured) {
-        await updateDoc(doc(db, 'clinic_appointments', apt.id), {
-          status: newStatus,
-          cancelled: newStatus === 'CANCELLED'
-        });
-      } else {
+      let docUpdated = false;
+      if (isFirebaseConfigured && !apt.id.startsWith('Appointments_')) {
+        try {
+          await updateDoc(doc(db, 'clinic_appointments', apt.id), {
+            status: newStatus,
+            cancelled: newStatus === 'CANCELLED'
+          });
+          docUpdated = true;
+        } catch (firestoreErr) {
+          console.warn("⚠️ Firestore appointment update failed in MyBookings, falling back to mockDb:", firestoreErr);
+        }
+      }
+      
+      if (!docUpdated) {
         await mockDb.updateAppointmentStatus(apt.id, newStatus);
       }
       
       // Sync with Google Sheets (fire-and-forget)
-      if (newStatus === 'CANCELLED') {
-        fetch('/api/updateSheets', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'cancel_appointment',
-            data: {
-              patient_phone: apt.patient_phone,
-              appointment_date: apt.appointment_date,
-              time_slot: apt.time_slot
-            }
-          })
-        }).catch(e => console.error('Sheets cancel sync failed:', e));
-      }
-      
-      // Update local state immediately
-      setAllAppointments(prev => prev.map(a => a.id === apt.id ? { ...a, status: newStatus, cancelled: newStatus === 'CANCELLED' } : a));
+      fetch('/api/updateSheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'update_appointment_status',
+          data: {
+            patient_name: apt.patient_name || apt.patientName,
+            patient_phone: apt.patient_phone || apt.patientPhone,
+            appointment_date: apt.appointment_date || apt.appointmentDate,
+            time_slot: apt.time_slot || apt.timeSlot,
+            status: newStatus
+          }
+        })
+      }).catch(e => console.error('Sheets status sync failed:', e));
     } catch (err) {
       console.error('Failed to update appointment:', err);
     } finally {
@@ -288,35 +360,124 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
     try {
       let apptResults = [];
       let orderResults = [];
+      let fetchedSuccessfully = false;
 
       if (isFirebaseConfigured) {
-        // Query Firestore for appointments
-        const appointmentsRef = collection(db, 'clinic_appointments');
-        const q1 = query(appointmentsRef, where('patient_phone', '==', formattedSearch));
-        const querySnapshot = await getDocs(q1);
-        querySnapshot.forEach((docSnap) => {
-          apptResults.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        apptResults.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+        try {
+          // Query Firestore for appointments
+          const appointmentsRef = collection(db, 'clinic_appointments');
+          const q1 = query(appointmentsRef, where('patient_phone', '==', formattedSearch));
+          const querySnapshot = await getDocs(q1);
+          querySnapshot.forEach((docSnap) => {
+            apptResults.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          apptResults.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
 
-        // Query Firestore for B2C retail orders
-        const ordersRef = collection(db, 'retail_orders');
-        const q2 = query(ordersRef, where('phone', '==', formattedSearch));
-        const ordersSnapshot = await getDocs(q2);
-        ordersSnapshot.forEach((docSnap) => {
-          orderResults.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        orderResults.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-      } else {
-        apptResults = await mockDb.getAppointmentsByPhone(formattedSearch);
-        apptResults.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-
-        orderResults = await mockDb.getRetailOrdersByPhone(formattedSearch);
-        orderResults.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+          // Query Firestore for B2C retail orders
+          const ordersRef = collection(db, 'retail_orders');
+          const q2 = query(ordersRef, where('phone', '==', formattedSearch));
+          const ordersSnapshot = await getDocs(q2);
+          ordersSnapshot.forEach((docSnap) => {
+            orderResults.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          orderResults.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+          
+          fetchedSuccessfully = true;
+        } catch (firestoreErr) {
+          console.warn("⚠️ Firestore phone query failed, attempting Google Sheets / mockDb fallback:", firestoreErr);
+        }
       }
 
-      setSearchResults(apptResults);
-      setSearchOrderResults(orderResults);
+      if (!fetchedSuccessfully) {
+        try {
+          const response = await fetch('/api/readSheets');
+          const result = await response.json();
+          if (result.status === 'success' && result.data) {
+            const cleanSearch = formattedSearch.replace(/[^0-9]/g, '');
+            
+            apptResults = (result.data.appointments || []).filter(apt => {
+              const phone = (apt.patientPhone || apt.patient_phone || '').replace(/[^0-9]/g, '');
+              return phone.includes(cleanSearch) || cleanSearch.includes(phone);
+            }).map(apt => ({
+              id: apt.id,
+              patient_name: apt.patientName || apt.patient_name,
+              patient_phone: apt.patientPhone || apt.patient_phone,
+              appointment_date: apt.appointmentDate || apt.appointment_date,
+              time_slot: apt.timeSlot || apt.time_slot,
+              status: apt.status
+            }));
+
+            orderResults = (result.data.retailOrders || []).filter(order => {
+              const phone = (order.phone || '').replace(/[^0-9]/g, '');
+              return phone.includes(cleanSearch) || cleanSearch.includes(phone);
+            }).map(order => ({
+              id: order.id,
+              customer_name: order.customerName || order.name,
+              phone: order.phone,
+              email: order.email,
+              address: order.address,
+              medicines_list: order.medicinesList || order.medicines,
+              total_price: order.totalEstimatedPrice || order.totalPrice,
+              lead_status: order.status || order.lead_status || 'Pending'
+            }));
+            
+            fetchedSuccessfully = true;
+          }
+        } catch (sheetErr) {
+          console.warn("⚠️ Google Sheets search fallback failed:", sheetErr);
+        }
+      }
+
+      if (!fetchedSuccessfully || (apptResults.length === 0 && orderResults.length === 0)) {
+        // Safe fallback to mockDb
+        const mockApts = await mockDb.getAppointmentsByPhone(formattedSearch);
+        const mockOrders = await mockDb.getRetailOrdersByPhone(formattedSearch);
+        
+        // Merge with existing array (ensures local device caching fits together)
+        const combinedApts = [...apptResults];
+        mockApts.forEach(ma => {
+          if (!combinedApts.some(a => a.id === ma.id)) combinedApts.push(ma);
+        });
+
+        const combinedOrders = [...orderResults];
+        mockOrders.forEach(mo => {
+          if (!combinedOrders.some(o => o.id === mo.id)) combinedOrders.push(mo);
+        });
+
+        apptResults = combinedApts;
+        orderResults = combinedOrders;
+      }
+
+      // Final normalizations to ensure visual columns match perfectly
+      const normalizedApts = apptResults.map(a => ({
+        id: a.id,
+        patient_name: a.patient_name || a.patientName || '',
+        patient_phone: a.patient_phone || a.patientPhone || '',
+        appointment_date: a.appointment_date || a.appointmentDate || '',
+        time_slot: a.time_slot || a.timeSlot || '',
+        status: a.status || (a.cancelled ? 'CANCELLED' : 'Pending'),
+        cancelled: a.cancelled || a.status === 'CANCELLED',
+        created_at: a.created_at || a.timestamp || ''
+      }));
+
+      const normalizedOrders = orderResults.map(o => ({
+        id: o.id,
+        phone: o.phone || '',
+        email: o.email || '',
+        address: o.address || '',
+        customer_name: o.customer_name || o.customerName || o.name || '',
+        medicines_list: o.medicines_list || o.medicinesList || o.medicines || '',
+        total_price: o.total_price || o.totalEstimatedPrice || o.totalPrice || 'TBD',
+        lead_status: o.lead_status || o.status || 'Pending',
+        created_at: o.created_at || o.timestamp || ''
+      }));
+
+      // Sort
+      normalizedApts.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+      normalizedOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      setSearchResults(normalizedApts);
+      setSearchOrderResults(normalizedOrders);
     } catch (err) {
       console.error('Search query failure:', err);
       setSearchError(language === 'en' ? 'Failed to retrieve records. Please verify your connection.' : 'रिकॉर्ड प्राप्त करने में विफल। कृपया अपने इंटरनेट कनेक्शन की जांच करें।');
@@ -330,14 +491,29 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
     setCancellingId(bookingId);
     setCancelError('');
     const booking = searchResults?.find((b) => b.id === bookingId);
+
+    // Optimistic Update
+    setSearchResults((prev) =>
+      prev ? prev.map((b) => b.id === bookingId ? { ...b, cancelled: true, status: 'CANCELLED' } : b) : prev
+    );
+
     try {
-      if (isFirebaseConfigured) {
-        await updateDoc(doc(db, 'clinic_appointments', bookingId), {
-          status: 'CANCELLED',
-          cancelled: true
-        });
+      let docUpdated = false;
+      if (isFirebaseConfigured && !bookingId.startsWith('Appointments_')) {
+        try {
+          await updateDoc(doc(db, 'clinic_appointments', bookingId), {
+            status: 'CANCELLED',
+            cancelled: true
+          });
+          docUpdated = true;
+        } catch (firestoreErr) {
+          console.warn("⚠️ Firestore cancellation failed, falling back to mockDb:", firestoreErr);
+        }
       }
       
+      // Always update mockDb/localStorage to stay synced
+      await mockDb.updateAppointmentStatus(bookingId, 'CANCELLED');
+
       // Mark as CANCELLED in Google Sheets (fire-and-forget)
       if (booking) {
         fetch('/api/updateSheets', {
@@ -346,9 +522,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
           body: JSON.stringify({
             type: 'cancel_appointment',
             data: {
-              patient_phone: booking.patient_phone,
-              appointment_date: booking.appointment_date,
-              time_slot: booking.time_slot,
+              patient_phone: booking.patient_phone || booking.patientPhone,
+              appointment_date: booking.appointment_date || booking.appointmentDate,
+              time_slot: booking.time_slot || booking.timeSlot,
             }
           })
         }).catch((err) => console.warn('Sheets cancel sync failed:', err));
@@ -359,7 +535,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
         // 1. Global mock database cache
         const globalAppointments = JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
         const updatedGlobal = globalAppointments.map((apt) => {
-          if (apt.id === bookingId || (booking && apt.appointment_date === booking.appointment_date && apt.time_slot === booking.time_slot)) {
+          if (apt.id === bookingId || (booking && (apt.appointment_date === booking.appointment_date || apt.appointmentDate === booking.appointmentDate) && (apt.time_slot === booking.time_slot || apt.timeSlot === booking.timeSlot))) {
             return { ...apt, status: 'CANCELLED', cancelled: true };
           }
           return apt;
@@ -369,7 +545,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
         // 2. User device-local bookings cache
         const localCache = JSON.parse(localStorage.getItem('user_local_bookings') || '[]');
         const updatedLocal = localCache.map((apt) => {
-          if (apt.id === bookingId || (booking && apt.appointment_date === booking.appointment_date && apt.time_slot === booking.time_slot)) {
+          if (apt.id === bookingId || (booking && (apt.appointment_date === booking.appointment_date || apt.appointmentDate === booking.appointmentDate) && (apt.time_slot === booking.time_slot || apt.timeSlot === booking.timeSlot))) {
             return { ...apt, status: 'CANCELLED', cancelled: true };
           }
           return apt;
@@ -379,10 +555,6 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
         console.error('Failed to update cancellation state in localStorage caches:', cacheErr);
       }
 
-      // Keep card visible but flag it as cancelled — don't remove it
-      setSearchResults((prev) =>
-        prev ? prev.map((b) => b.id === bookingId ? { ...b, cancelled: true, status: 'CANCELLED' } : b) : prev
-      );
       setConfirmId(null);
     } catch (err) {
       console.error('Cancel failed:', err);

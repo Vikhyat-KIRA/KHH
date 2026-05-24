@@ -41,52 +41,122 @@ export default function PharmacistPortal() {
     setSyncStatus('syncing');
     
     try {
+      let rOrders = [];
+      let rApts = [];
+      let rBulk = [];
+      let fetchedSuccessfully = false;
+
       if (isFirebaseConfigured) {
-        let rOrders = [];
-        let rApts = [];
-        let rBulk = [];
-        
-        const ordersSnapshot = await getDocs(collection(db, 'retail_orders'));
-        ordersSnapshot.forEach((docSnap) => rOrders.push({ id: docSnap.id, ...docSnap.data() }));
-        
-        const aptsSnapshot = await getDocs(collection(db, 'clinic_appointments'));
-        aptsSnapshot.forEach((docSnap) => rApts.push({ id: docSnap.id, ...docSnap.data() }));
-        
-        const b2bSnapshot = await getDocs(collection(db, 'bulk_orders'));
-        b2bSnapshot.forEach((docSnap) => rBulk.push({ id: docSnap.id, ...docSnap.data() }));
-
-        rOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-        rApts.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
-        rBulk.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-
-        setRetailOrders(rOrders);
-        setConsultations(rApts);
-        setWholesaleQueries(rBulk);
-        setSyncStatus('success');
-      } else {
-        const response = await fetch('/api/readSheets');
-        const result = await response.json();
-        
-        if (result.status === 'success' && result.data) {
-          setRetailOrders(result.data.retailOrders || []);
-          setConsultations(result.data.appointments || []);
-          setWholesaleQueries(result.data.b2bQueries || []);
+        try {
+          const ordersSnapshot = await getDocs(collection(db, 'retail_orders'));
+          ordersSnapshot.forEach((docSnap) => rOrders.push({ id: docSnap.id, ...docSnap.data() }));
+          
+          const aptsSnapshot = await getDocs(collection(db, 'clinic_appointments'));
+          aptsSnapshot.forEach((docSnap) => rApts.push({ id: docSnap.id, ...docSnap.data() }));
+          
+          const b2bSnapshot = await getDocs(collection(db, 'bulk_orders'));
+          b2bSnapshot.forEach((docSnap) => rBulk.push({ id: docSnap.id, ...docSnap.data() }));
+          
+          fetchedSuccessfully = true;
           setSyncStatus('success');
-        } else if (result.status === 'mock_mode') {
-          // Fallback to local storage
-          const localRetail = JSON.parse(localStorage.getItem('retail_orders') || '[]');
-          const localBulk = JSON.parse(localStorage.getItem('bulk_orders') || '[]');
-          const localApts = JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
-          
-          setRetailOrders(localRetail.slice(-20).reverse());
-          setWholesaleQueries(localBulk.slice(-20).reverse());
-          setConsultations(localApts.slice(-20).reverse());
-          
-          setSyncStatus('mock');
-        } else {
-          throw new Error(result.message || 'Failed to fetch data');
+        } catch (firestoreErr) {
+          console.warn("⚠️ Firestore fetch failed, falling back to Google Sheets / local mockDb:", firestoreErr);
         }
       }
+
+      if (!fetchedSuccessfully) {
+        try {
+          const response = await fetch('/api/readSheets');
+          const result = await response.json();
+          
+          if (result.status === 'success' && result.data) {
+            rOrders = result.data.retailOrders || [];
+            rApts = result.data.appointments || [];
+            rBulk = result.data.b2bQueries || [];
+            setSyncStatus('success');
+            fetchedSuccessfully = true;
+          }
+        } catch (sheetErr) {
+          console.warn("⚠️ Google Sheets fetch fallback failed:", sheetErr);
+        }
+      }
+
+      if (!fetchedSuccessfully) {
+        // Fallback to local storage (mockDb)
+        const localRetail = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+        const localBulk = JSON.parse(localStorage.getItem('bulk_orders') || '[]');
+        const localApts = JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
+        
+        rOrders = localRetail;
+        rApts = localApts;
+        rBulk = localBulk;
+        
+        setSyncStatus('mock');
+      }
+
+      // Dynamic field normalization so the table renders cleanly in all formats!
+      const normalizedOrders = rOrders.map(o => ({
+        id: o.id,
+        phone: o.phone || '',
+        email: o.email || '',
+        address: o.address || '',
+        customer_name: o.customer_name || o.customerName || o.name || '',
+        customerName: o.customer_name || o.customerName || o.name || '',
+        name: o.customer_name || o.customerName || o.name || '',
+        medicines_list: o.medicines_list || o.medicinesList || o.medicines || '',
+        medicinesList: o.medicines_list || o.medicinesList || o.medicines || '',
+        medicines: o.medicines_list || o.medicinesList || o.medicines || '',
+        total_price: o.total_price || o.totalEstimatedPrice || o.totalPrice || 'TBD',
+        totalEstimatedPrice: o.total_price || o.totalEstimatedPrice || o.totalPrice || 'TBD',
+        totalPrice: o.total_price || o.totalEstimatedPrice || o.totalPrice || 'TBD',
+        lead_status: o.lead_status || o.status || 'Pending',
+        status: o.lead_status || o.status || 'Pending',
+        timestamp: o.timestamp || o.created_at || '',
+        created_at: o.timestamp || o.created_at || ''
+      }));
+
+      const normalizedApts = rApts.map(a => ({
+        id: a.id,
+        patient_name: a.patient_name || a.patientName || '',
+        patientName: a.patient_name || a.patientName || '',
+        patient_phone: a.patient_phone || a.patientPhone || '',
+        patientPhone: a.patient_phone || a.patientPhone || '',
+        appointment_date: a.appointment_date || a.appointmentDate || '',
+        appointmentDate: a.appointment_date || a.appointmentDate || '',
+        time_slot: a.time_slot || a.timeSlot || '',
+        timeSlot: a.time_slot || a.timeSlot || '',
+        status: a.status || (a.cancelled ? 'CANCELLED' : 'Pending'),
+        cancelled: a.cancelled || a.status === 'CANCELLED',
+        timestamp: a.timestamp || a.created_at || '',
+        created_at: a.timestamp || a.created_at || ''
+      }));
+
+      const normalizedBulk = rBulk.map(q => ({
+        id: q.id,
+        client_name: q.client_name || q.contactName || q.name || '',
+        contactName: q.client_name || q.contactName || q.name || '',
+        name: q.client_name || q.contactName || q.name || '',
+        company_name: q.company_name || q.companyName || '',
+        companyName: q.company_name || q.companyName || '',
+        phone: q.phone || '',
+        email: q.email || '',
+        estimated_quantity: q.estimated_quantity || q.estimatedQuantity || q.quantity || '',
+        estimatedQuantity: q.estimated_quantity || q.estimatedQuantity || q.quantity || '',
+        quantity: q.estimated_quantity || q.estimatedQuantity || q.quantity || '',
+        requirements_text: q.requirements_text || q.requirements || '',
+        requirements: q.requirements_text || q.requirements || '',
+        timestamp: q.timestamp || q.created_at || '',
+        created_at: q.timestamp || q.created_at || ''
+      }));
+
+      // Sort: newest first
+      normalizedOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      normalizedApts.sort((a, b) => new Date(b.appointment_date || 0) - new Date(a.appointment_date || 0));
+      normalizedBulk.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      setRetailOrders(normalizedOrders);
+      setConsultations(normalizedApts);
+      setWholesaleQueries(normalizedBulk);
       setLastSync(new Date().toLocaleTimeString());
     } catch (error) {
       console.error('Error syncing portal data:', error);
@@ -115,13 +185,24 @@ export default function PharmacistPortal() {
     const order = retailOrders.find(o => o.id === orderId);
     if (!order) return;
 
+    // Optimistic Update: Update local state immediately so user sees instant feedback
+    setRetailOrders(prev => prev.map(ord => ord.id === orderId ? { ...ord, status: newStatus, lead_status: newStatus } : ord));
+
     try {
-      if (isFirebaseConfigured) {
-        await updateDoc(doc(db, 'retail_orders', orderId), {
-          lead_status: newStatus,
-          status: newStatus
-        });
-      } else {
+      let docUpdated = false;
+      if (isFirebaseConfigured && !orderId.startsWith('Retail_Orders_')) {
+        try {
+          await updateDoc(doc(db, 'retail_orders', orderId), {
+            lead_status: newStatus,
+            status: newStatus
+          });
+          docUpdated = true;
+        } catch (firestoreErr) {
+          console.warn("⚠️ Firestore retail order update failed, falling back to mockDb:", firestoreErr);
+        }
+      }
+
+      if (!docUpdated) {
         await mockDb.updateRetailOrderStatus(orderId, newStatus);
       }
 
@@ -139,8 +220,6 @@ export default function PharmacistPortal() {
         })
       }).catch(e => console.error('Sheets status sync failed:', e));
 
-      // Update local state immediately
-      setRetailOrders(prev => prev.map(ord => ord.id === orderId ? { ...ord, status: newStatus, lead_status: newStatus } : ord));
     } catch (err) {
       console.error('Failed to update retail order status from portal:', err);
     }
@@ -151,13 +230,24 @@ export default function PharmacistPortal() {
     const apt = consultations.find(a => a.id === aptId);
     if (!apt) return;
 
+    // Optimistic Update: Update local state immediately so user sees instant feedback
+    setConsultations(prev => prev.map(a => a.id === aptId ? { ...a, status: newStatus, cancelled: newStatus === 'CANCELLED' } : a));
+
     try {
-      if (isFirebaseConfigured) {
-        await updateDoc(doc(db, 'clinic_appointments', aptId), {
-          status: newStatus,
-          cancelled: newStatus === 'CANCELLED'
-        });
-      } else {
+      let docUpdated = false;
+      if (isFirebaseConfigured && !aptId.startsWith('Appointments_')) {
+        try {
+          await updateDoc(doc(db, 'clinic_appointments', aptId), {
+            status: newStatus,
+            cancelled: newStatus === 'CANCELLED'
+          });
+          docUpdated = true;
+        } catch (firestoreErr) {
+          console.warn("⚠️ Firestore appointment status update failed, falling back to mockDb:", firestoreErr);
+        }
+      }
+
+      if (!docUpdated) {
         await mockDb.updateAppointmentStatus(aptId, newStatus);
       }
 
@@ -177,8 +267,6 @@ export default function PharmacistPortal() {
         })
       }).catch(e => console.error('Sheets appointment sync failed:', e));
 
-      // Update local state immediately
-      setConsultations(prev => prev.map(a => a.id === aptId ? { ...a, status: newStatus, cancelled: newStatus === 'CANCELLED' } : a));
     } catch (err) {
       console.error('Failed to update appointment status from portal:', err);
     }
