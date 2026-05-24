@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Lock, RefreshCw, Package, Stethoscope, Briefcase, Clock, Search, ChevronDown, Download, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Lock, RefreshCw, Package, Stethoscope, Briefcase, Clock, Search, ChevronDown, Download, CheckCircle, XCircle, AlertCircle, MessageCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { doc, updateDoc, collection, getDocs } from 'firebase/firestore';
@@ -339,7 +339,9 @@ export default function PharmacistPortal() {
         } else if (f === 'booked' || f === 'confirmed') {
           matchesStatus = statusVal === 'booked' || statusVal.includes('confirm');
         } else if (f === 'out for delivery') {
-          matchesStatus = statusVal.includes('out') || statusVal === 'shipped';
+          matchesStatus = statusVal.includes('out for delivery') || statusVal === 'shipped';
+        } else if (f === 'out of stock') {
+          matchesStatus = statusVal.includes('out of stock');
         } else if (f === 'delivered') {
           matchesStatus = statusVal === 'delivered' || statusVal.includes('complet');
         } else if (f === 'cancelled') {
@@ -464,8 +466,11 @@ export default function PharmacistPortal() {
     if (s === 'delivered' || s.includes('complet')) {
       return <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-emerald-500/30">{language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}</span>;
     }
-    if (s.includes('out') || s === 'shipped') {
+    if (s.includes('out for delivery') || s === 'shipped') {
       return <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-amber-500/30">{language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}</span>;
+    }
+    if (s.includes('out of stock')) {
+      return <span className="bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-orange-500/30">{language === 'en' ? 'Out of Stock' : 'स्टॉक में नहीं'}</span>;
     }
     if (s.includes('cancel')) {
       return <span className="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-rose-500/30">{language === 'en' ? 'Cancelled' : 'रद्द'}</span>;
@@ -512,7 +517,14 @@ export default function PharmacistPortal() {
                   <td className="p-4 text-xs text-slate-400">{order.timestamp || order.created_at}</td>
                   <td className="p-4 font-bold text-white">{order.customerName || order.name}</td>
                   <td className="p-4 text-slate-300">
-                    <div>{order.phone}</div>
+                    <div className="flex items-center gap-2">
+                      <span>{order.phone}</span>
+                      {order.phone && (
+                        <a href={`https://wa.me/91${order.phone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`Hello ${order.customerName || order.name}, regarding your order from Kanchan Homoeo Hall for: ${order.medicinesList || order.medicines}. We wanted to inform you...`)}`} target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400 transition-colors" title="WhatsApp Customer">
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
                     <div className="text-[10px] text-slate-500 truncate max-w-[150px]">{order.email}</div>
                   </td>
                   <td className="p-4">
@@ -550,6 +562,7 @@ export default function PharmacistPortal() {
                         <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ {language === 'en' ? 'Pending' : 'लंबित'}</option>
                         <option value="Booked" className="bg-[#0A1020] text-teal-400">📦 {language === 'en' ? 'Booked' : 'बुक किया गया'}</option>
                         <option value="Out for Delivery" className="bg-[#0A1020] text-amber-500">🚚 {language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}</option>
+                        <option value="Out of Stock" className="bg-[#0A1020] text-orange-400">⚠️ {language === 'en' ? 'Out of Stock' : 'स्टॉक में नहीं'}</option>
                         <option value="Delivered" className="bg-[#0A1020] text-emerald-400">✅ {language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}</option>
                         <option value="Cancelled" className="bg-[#0A1020] text-rose-400">❌ {language === 'en' ? 'Cancelled' : 'रद्द'}</option>
                       </select>
@@ -824,6 +837,7 @@ export default function PharmacistPortal() {
                   <>
                     <option value="Booked">{language === 'en' ? 'Booked' : 'बुक किया गया'}</option>
                     <option value="Out for Delivery">{language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}</option>
+                    <option value="Out of Stock">{language === 'en' ? 'Out of Stock' : 'स्टॉक में नहीं'}</option>
                     <option value="Delivered">{language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}</option>
                   </>
                 ) : (

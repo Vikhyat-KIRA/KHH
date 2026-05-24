@@ -777,7 +777,8 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
   const renderOrderCard = (order) => {
     const status = order.lead_status || order.status || 'Pending';
     const isCancelled = status.toLowerCase() === 'cancelled';
-    const isOutForDelivery = status.toLowerCase().includes('out');
+    const isOutOfStock = status.toLowerCase().includes('out of stock');
+    const isOutForDelivery = status.toLowerCase().includes('out for delivery');
     const isDelivered = status.toLowerCase().includes('deliver') || status.toLowerCase().includes('complet');
 
     return (
@@ -790,6 +791,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
         {/* Top colour bar */}
         <div className={`absolute top-0 left-0 right-0 h-1 ${
           isCancelled ? 'bg-rose-500' :
+          isOutOfStock ? 'bg-orange-500' :
           isDelivered ? 'bg-emerald-500' :
           isOutForDelivery ? 'bg-amber-500' : 'bg-teal-500'
         }`}></div>
@@ -803,11 +805,13 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
           </div>
           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
             isCancelled ? 'bg-rose-50 border-rose-200 text-rose-700' :
+            isOutOfStock ? 'bg-orange-50 border-orange-200 text-orange-700' :
             isDelivered ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
             isOutForDelivery ? 'bg-amber-50 border-amber-200 text-amber-700' :
             'bg-teal-50 border-teal-200 text-teal-700 animate-pulse'
           }`}>
             {isCancelled ? (language === 'en' ? 'Cancelled' : 'रद्द') :
+             isOutOfStock ? (language === 'en' ? 'Out of Stock' : 'स्टॉक में नहीं') :
              isDelivered ? (language === 'en' ? 'Delivered' : 'डिलिवर हो गया') :
              isOutForDelivery ? (language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर') :
              (language === 'en' ? 'Booked' : 'बुक किया गया')}
