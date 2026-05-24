@@ -284,6 +284,24 @@ export default function PharmacistPortal() {
     document.body.removeChild(link);
   };
 
+  // Format Helper
+  const renderStatus = (status) => {
+    const s = (status || 'Pending').toLowerCase();
+    if (s === 'delivered' || s.includes('complet')) {
+      return <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-emerald-500/30">{language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}</span>;
+    }
+    if (s.includes('out') || s === 'shipped') {
+      return <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-amber-500/30">{language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}</span>;
+    }
+    if (s.includes('cancel')) {
+      return <span className="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-rose-500/30">{language === 'en' ? 'Cancelled' : 'रद्द'}</span>;
+    }
+    if (s.includes('confirm') || s === 'booked' || s.includes('sched')) {
+      return <span className="bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-teal-500/30">{language === 'en' ? 'Booked' : 'बुक किया गया'}</span>;
+    }
+    return <span className="bg-[#0F766E]/20 text-[#2DD4BF] px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-[#0F766E]/30">{language === 'en' ? 'Pending' : 'लंबित'}</span>;
+  };
+
   const renderActiveTable = () => {
     if (isLoading) {
       return (
