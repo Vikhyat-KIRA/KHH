@@ -4,7 +4,7 @@ import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
+export default function MyBookings({ onBackToHome, initialAdminMode = false, onlyShowType = null }) {
   const { language, t } = useLanguage();
   const [searchPhone, setSearchPhone] = useState('');
   const [searching, setSearching] = useState(false);
@@ -364,23 +364,27 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
 
       if (isFirebaseConfigured) {
         try {
-          // Query Firestore for appointments
-          const appointmentsRef = collection(db, 'clinic_appointments');
-          const q1 = query(appointmentsRef, where('patient_phone', '==', formattedSearch));
-          const querySnapshot = await getDocs(q1);
-          querySnapshot.forEach((docSnap) => {
-            apptResults.push({ id: docSnap.id, ...docSnap.data() });
-          });
-          apptResults.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+          if (!onlyShowType || onlyShowType === 'appointments') {
+            // Query Firestore for appointments
+            const appointmentsRef = collection(db, 'clinic_appointments');
+            const q1 = query(appointmentsRef, where('patient_phone', '==', formattedSearch));
+            const querySnapshot = await getDocs(q1);
+            querySnapshot.forEach((docSnap) => {
+              apptResults.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            apptResults.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+          }
 
-          // Query Firestore for B2C retail orders
-          const ordersRef = collection(db, 'retail_orders');
-          const q2 = query(ordersRef, where('phone', '==', formattedSearch));
-          const ordersSnapshot = await getDocs(q2);
-          ordersSnapshot.forEach((docSnap) => {
-            orderResults.push({ id: docSnap.id, ...docSnap.data() });
-          });
-          orderResults.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+          if (!onlyShowType || onlyShowType === 'orders') {
+            // Query Firestore for B2C retail orders
+            const ordersRef = collection(db, 'retail_orders');
+            const q2 = query(ordersRef, where('phone', '==', formattedSearch));
+            const ordersSnapshot = await getDocs(q2);
+            ordersSnapshot.forEach((docSnap) => {
+              orderResults.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            orderResults.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+          }
           
           fetchedSuccessfully = true;
         } catch (firestoreErr) {
@@ -395,31 +399,37 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
           if (result.status === 'success' && result.data) {
             const cleanSearch = formattedSearch.replace(/[^0-9]/g, '');
             
-            apptResults = (result.data.appointments || []).filter(apt => {
-              const phone = (apt.patientPhone || apt.patient_phone || '').replace(/[^0-9]/g, '');
-              return phone.includes(cleanSearch) || cleanSearch.includes(phone);
-            }).map(apt => ({
-              id: apt.id,
-              patient_name: apt.patientName || apt.patient_name,
-              patient_phone: apt.patientPhone || apt.patient_phone,
-              appointment_date: apt.appointmentDate || apt.appointment_date,
-              time_slot: apt.timeSlot || apt.time_slot,
-              status: apt.status
-            }));
+            if (!onlyShowType || onlyShowType === 'appointments') {
+              apptResults = (result.data.appointments || []).filter(apt => {
+                const phone = (apt.patientPhone || apt.patient_phone || '').replace(/[^0-9]/g, '');
+                if (!phone) return false;
+                return phone.includes(cleanSearch) || cleanSearch.includes(phone);
+              }).map(apt => ({
+                id: apt.id,
+                patient_name: apt.patientName || apt.patient_name,
+                patient_phone: apt.patientPhone || apt.patient_phone,
+                appointment_date: apt.appointmentDate || apt.appointment_date,
+                time_slot: apt.timeSlot || apt.time_slot,
+                status: apt.status
+              }));
+            }
 
-            orderResults = (result.data.retailOrders || []).filter(order => {
-              const phone = (order.phone || '').replace(/[^0-9]/g, '');
-              return phone.includes(cleanSearch) || cleanSearch.includes(phone);
-            }).map(order => ({
-              id: order.id,
-              customer_name: order.customerName || order.name,
-              phone: order.phone,
-              email: order.email,
-              address: order.address,
-              medicines_list: order.medicinesList || order.medicines,
-              total_price: order.totalEstimatedPrice || order.totalPrice,
-              lead_status: order.status || order.lead_status || 'Pending'
-            }));
+            if (!onlyShowType || onlyShowType === 'orders') {
+              orderResults = (result.data.retailOrders || []).filter(order => {
+                const phone = (order.phone || '').replace(/[^0-9]/g, '');
+                if (!phone) return false;
+                return phone.includes(cleanSearch) || cleanSearch.includes(phone);
+              }).map(order => ({
+                id: order.id,
+                customer_name: order.customerName || order.name,
+                phone: order.phone,
+                email: order.email,
+                address: order.address,
+                medicines_list: order.medicinesList || order.medicines,
+                total_price: order.totalEstimatedPrice || order.totalPrice,
+                lead_status: order.status || order.lead_status || 'Pending'
+              }));
+            }
             
             fetchedSuccessfully = true;
           }
@@ -430,8 +440,8 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
 
       if (!fetchedSuccessfully || (apptResults.length === 0 && orderResults.length === 0)) {
         // Safe fallback to mockDb
-        const mockApts = await mockDb.getAppointmentsByPhone(formattedSearch);
-        const mockOrders = await mockDb.getRetailOrdersByPhone(formattedSearch);
+        const mockApts = (!onlyShowType || onlyShowType === 'appointments') ? await mockDb.getAppointmentsByPhone(formattedSearch) : [];
+        const mockOrders = (!onlyShowType || onlyShowType === 'orders') ? await mockDb.getRetailOrdersByPhone(formattedSearch) : [];
         
         // Merge with existing array (ensures local device caching fits together)
         const combinedApts = [...apptResults];
@@ -1424,8 +1434,28 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
   }
 
   // --- RENDER MAIN COMPONENT FOR PUBLIC LOOKUP VIEW ONLY ---
+  const isOrdersOnly = onlyShowType === 'orders';
+  const isAptsOnly = onlyShowType === 'appointments';
+
+  const lookupTitle = isOrdersOnly ? t('bookings.titleOrders') : t('bookings.title');
+  const lookupDesc = isOrdersOnly ? t('bookings.descOrders') : t('bookings.desc');
+  const searchCardTitle = isOrdersOnly ? t('bookings.searchTitleOrders') : t('bookings.searchTitle');
+  const searchCardDesc = isOrdersOnly ? t('bookings.searchDescOrders') : t('bookings.searchDesc');
+  const searchButtonText = isOrdersOnly ? t('bookings.searchBtnOrders') : t('bookings.searchBtn');
+
+  // Filter actual lists rendered based on onlyShowType
+  const showApts = !isOrdersOnly && searchResults && searchResults.length > 0;
+  const showOrders = !isAptsOnly && searchOrderResults && searchOrderResults.length > 0;
+
+  const hasNoResults = (searchResults !== null || searchOrderResults !== null) && 
+    ((isOrdersOnly && searchOrderResults?.length === 0) || 
+     (isAptsOnly && searchResults?.length === 0) || 
+     (!isOrdersOnly && !isAptsOnly && searchResults?.length === 0 && searchOrderResults?.length === 0));
+
+  const totalResultsCount = (isOrdersOnly ? searchOrderResults?.length : (isAptsOnly ? searchResults?.length : (searchResults?.length || 0) + (searchOrderResults?.length || 0))) || 0;
+
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 space-y-8 text-slate-800 animate-fade-in text-left">
+    <div className="max-w-5xl mx-auto px-6 py-12 space-y-8 text-slate-800 animate-fade-in text-left font-sans">
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -1438,16 +1468,18 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
           {t('bookings.backBtn')}
         </button>
         <span className="text-2xs font-extrabold uppercase tracking-widest text-[#5A6561] bg-[#F9F6F0] border border-[#EAE5DC] px-3 py-1 rounded-full">
-          {language === 'en' ? 'Secure Proof Verification' : 'सुरक्षित प्रमाण सत्यापन'}
+          {isOrdersOnly 
+            ? (language === 'en' ? 'Remedies Dispatch Verification' : 'दवा प्रेषण सत्यापन')
+            : (language === 'en' ? 'Secure Proof Verification' : 'सुरक्षित प्रमाण सत्यापन')}
         </span>
       </div>
 
       {/* Lookup Mode Body */}
       <div className="space-y-12 animate-fade-in">
         <div className="text-center max-w-2xl mx-auto space-y-3">
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('bookings.title')}</h2>
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">{lookupTitle}</h2>
           <p className="text-sm text-slate-500 leading-relaxed">
-            {t('bookings.desc')}
+            {lookupDesc}
           </p>
         </div>
 
@@ -1458,9 +1490,9 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
           <div className="space-y-1">
             <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-widest flex items-center gap-2">
               <Search className="w-4 h-4 text-[#115E59]" />
-              {t('bookings.searchTitle')}
+              {searchCardTitle}
             </h3>
-            <p className="text-2xs text-slate-400">{t('bookings.searchDesc')}</p>
+            <p className="text-2xs text-slate-400">{searchCardDesc}</p>
           </div>
 
           <form onSubmit={handlePhoneSearch} className="space-y-4">
@@ -1501,7 +1533,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
               {searching ? (
                 <><Loader2 className="w-4 h-4 animate-spin" />{t('bookings.searching')}</>
               ) : (
-                <><Search className="w-4 h-4" />{t('bookings.searchBtn')}</>
+                <><Search className="w-4 h-4" />{searchButtonText}</>
               )}
             </button>
           </form>
@@ -1509,16 +1541,22 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
           {/* Search Results */}
           {(searchResults !== null || searchOrderResults !== null) && (
             <div className="pt-4 border-t border-slate-100 space-y-6">
-              {searchResults?.length === 0 && searchOrderResults?.length === 0 ? (
+              {hasNoResults ? (
                 <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl text-center space-y-2">
-                  <AlertCircle className="w-8 h-8 text-slate-450 mx-auto" />
+                  <AlertCircle className="w-8 h-8 text-slate-455 mx-auto" />
                   <p className="text-sm font-bold text-slate-700">
-                    {language === 'en' ? 'No active records found' : 'कोई सक्रिय रिकॉर्ड नहीं मिला'}
+                    {isOrdersOnly 
+                      ? (language === 'en' ? 'No active homeopathic orders found' : 'कोई सक्रिय दवा ऑर्डर नहीं मिला')
+                      : (language === 'en' ? 'No active consultation spots found' : 'कोई सक्रिय परामर्श स्लॉट नहीं मिला')}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {language === 'en' 
-                      ? 'We could not find any active consultations or delivery orders for this phone number.'
-                      : 'हमें इस फोन नंबर के लिए कोई सक्रिय परामर्श या वितरण ऑर्डर नहीं मिला।'}
+                    {isOrdersOnly 
+                      ? (language === 'en' 
+                        ? 'We could not find any active remedies home delivery orders for this phone number.'
+                        : 'हमें इस फोन नंबर के लिए कोई सक्रिय दवा वितरण ऑर्डर नहीं मिला।')
+                      : (language === 'en'
+                        ? 'We could not find any active doctor consultation token slots for this phone number.'
+                        : 'हमें इस फोन नंबर के लिए कोई सक्रिय डॉक्टर परामर्श स्लॉट नहीं मिला।')}
                   </p>
                   <p className="text-3xs text-slate-455 uppercase font-black tracking-widest pt-2">
                     {t('bookings.tryAnother')}
@@ -1526,8 +1564,15 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                 </div>
               ) : (
                 <div className="space-y-8 text-left">
+                  {/* Results Count Header */}
+                  <div className="text-3xs font-extrabold uppercase tracking-widest text-[#5A6561]">
+                    {isOrdersOnly 
+                      ? t('bookings.foundBookingsOrders').replace('{count}', totalResultsCount)
+                      : t('bookings.foundBookings').replace('{count}', totalResultsCount)}
+                  </div>
+
                   {/* Appointments Section */}
-                  {searchResults && searchResults.length > 0 && (
+                  {showApts && (
                     <div className="space-y-4">
                       <h4 className="text-2xs font-extrabold text-[#115E59] uppercase tracking-widest flex items-center gap-2 border-b border-[#EAE5DC]/60 pb-2 select-none">
                         🩺 {language === 'en' ? 'OPD Doctor Consultations' : 'ओपीडी डॉक्टर परामर्श'} ({searchResults.length})
@@ -1539,7 +1584,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false }) {
                   )}
 
                   {/* B2C Retail Orders Section */}
-                  {searchOrderResults && searchOrderResults.length > 0 && (
+                  {showOrders && (
                     <div className="space-y-4">
                       <h4 className="text-2xs font-extrabold text-[#115E59] uppercase tracking-widest flex items-center gap-2 border-b border-[#EAE5DC]/60 pb-2 select-none">
                         📦 {language === 'en' ? 'Remedies Home Delivery' : 'दवा होम डिलीवरी'} ({searchOrderResults.length})

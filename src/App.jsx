@@ -40,6 +40,8 @@ export default function App() {
         return 'admin';
       } else if (path === '/bookings' || path.endsWith('/bookings')) {
         return 'bookings';
+      } else if (path === '/track-order' || path.endsWith('/track-order')) {
+        return 'track-order';
       }
     }
     return 'main';
@@ -58,6 +60,8 @@ export default function App() {
           setActiveView('admin');
         } else if (p === '/bookings' || p.endsWith('/bookings')) {
           setActiveView('bookings');
+        } else if (p === '/track-order' || p.endsWith('/track-order')) {
+          setActiveView('track-order');
         } else {
           setActiveView('main');
         }
@@ -75,6 +79,8 @@ export default function App() {
         window.history.pushState({}, '', '/admin-panel');
       } else if (activeView === 'bookings' && currentPath !== '/bookings') {
         window.history.pushState({}, '', '/bookings');
+      } else if (activeView === 'track-order' && currentPath !== '/track-order') {
+        window.history.pushState({}, '', '/track-order');
       } else if (activeView === 'main' && currentPath !== '') {
         window.history.pushState({}, '', '/');
       }
@@ -97,6 +103,12 @@ export default function App() {
         const descMeta = document.querySelector('meta[name="description"]');
         if (descMeta) {
           descMeta.setAttribute('content', t('seo.bookingsDesc'));
+        }
+      } else if (activeView === 'track-order') {
+        document.title = language === 'en' ? 'Track Remedies Order - Kanchan Homoeo Hall' : 'दवा ऑर्डर ट्रैक करें - कंचन होम्योपैथी हॉल';
+        const descMeta = document.querySelector('meta[name="description"]');
+        if (descMeta) {
+          descMeta.setAttribute('content', language === 'en' ? 'Track status of your remedies order.' : 'अपने होम्योपैथिक दवा वितरण ऑर्डर की स्थिति ट्रैक करें।');
         }
       } else {
         document.title = t('seo.mainTitle');
@@ -339,6 +351,17 @@ export default function App() {
             >
               {t('nav.myBookings')}
             </button>
+            <button
+              onClick={() => {
+                setActiveView('track-order');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className={`transition-colors cursor-pointer bg-transparent border-0 font-semibold tracking-wide p-0 ${
+                activeView === 'track-order' ? 'text-[#115E59]' : 'text-[#5A6561] hover:text-[#115E59]'
+              }`}
+            >
+              {t('nav.trackOrder')}
+            </button>
             <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.location')}</a>
             
             {/* Sleek inline language switcher */}
@@ -411,6 +434,18 @@ export default function App() {
             >
               {t('nav.myBookings')}
             </button>
+            <button
+              onClick={() => {
+                setActiveView('track-order');
+                setMobileMenuOpen(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className={`text-left text-base font-semibold cursor-pointer bg-transparent border-0 p-0 ${
+                activeView === 'track-order' ? 'text-[#115E59]' : 'text-[#1A2421]'
+              }`}
+            >
+              {t('nav.trackOrder')}
+            </button>
             <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-base font-semibold text-[#1A2421]">{t('nav.location')}</a>
             
             <div className="border-t border-[#EAE5DC] pt-4 flex flex-col gap-4">
@@ -445,8 +480,12 @@ export default function App() {
       </header>
       )}
 
-      {activeView === 'bookings' || activeView === 'admin' ? (
-        <MyBookings initialAdminMode={activeView === 'admin'} onBackToHome={() => { setActiveView('main'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+      {activeView === 'bookings' || activeView === 'track-order' || activeView === 'admin' ? (
+        <MyBookings 
+          initialAdminMode={activeView === 'admin'} 
+          onlyShowType={activeView === 'bookings' ? 'appointments' : activeView === 'track-order' ? 'orders' : null}
+          onBackToHome={() => { setActiveView('main'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+        />
       ) : (
         <>
           {/* 2. HERO SECTION */}
