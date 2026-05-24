@@ -117,6 +117,27 @@ export default async function handler(req, res) {
       headers = ['Timestamp', 'Contact Name', 'Company Name', 'Email', 'Phone', 'Estimated Quantity', 'Requirements'];
       range = `${targetTab}!A:G`;
       values = [[timestamp, data.name, data.companyName, data.email, data.phone, data.quantity, data.requirements]];
+    } else if (type === 'retail_order') {
+      targetTab = 'Retail_Orders';
+      headers = [
+        'Timestamp', 'Customer Name', 'Phone', 'Email', 'Address', 
+        'Medicines List', 'AI Estimated Medicines Price', 'Delivery Charge', 
+        'Discount', 'Total Estimated Price', 'Status'
+      ];
+      range = `${targetTab}!A:K`;
+      values = [[
+        timestamp,
+        data.name,
+        data.phone,
+        data.email,
+        data.address,
+        data.medicines,
+        data.estimatedMedicinesPrice,
+        data.deliveryCharge,
+        data.discount,
+        data.totalPrice,
+        'Pending'
+      ]];
     } else {
       return res.status(400).json({ message: 'Invalid payload type' });
     }

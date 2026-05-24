@@ -12,11 +12,13 @@ import {
   CalendarDays, 
   Briefcase,
   Menu,
-  X
+  X,
+  ShoppingBag
 } from 'lucide-react';
 import BookingCalendar from './components/BookingCalendar';
 import BulkForm from './components/BulkForm';
 import MyBookings from './components/MyBookings';
+import RetailForm from './components/RetailForm';
 
 export default function App() {
   const [isOpenNow, setIsOpenNow] = useState(false);
@@ -162,7 +164,7 @@ export default function App() {
           </a>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold tracking-wide">
+          <nav className="hidden lg:flex items-center gap-7 text-sm font-semibold tracking-wide">
             <button
               onClick={() => {
                 setActiveView('main');
@@ -177,6 +179,7 @@ export default function App() {
             <a href="#credibility" onClick={(e) => smoothScroll(e, 'credibility')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">About</a>
             <a href="#meet-owner" onClick={(e) => smoothScroll(e, 'meet-owner')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Meet the Owner</a>
             <a href="#book-slot" onClick={(e) => smoothScroll(e, 'book-slot')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Appointments</a>
+            <a href="#retail-buy" onClick={(e) => smoothScroll(e, 'retail-buy')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">Buy Remedies</a>
             <a href="#bulk-orders" onClick={(e) => smoothScroll(e, 'bulk-orders')} className="text-[#5A6561] hover:text-[#0F766E] transition-colors">Wholesale</a>
             <button
               onClick={() => {
@@ -238,6 +241,7 @@ export default function App() {
             <a href="#credibility" onClick={(e) => smoothScroll(e, 'credibility')} className="text-base font-semibold text-[#1A2421]">About</a>
             <a href="#meet-owner" onClick={(e) => smoothScroll(e, 'meet-owner')} className="text-base font-semibold text-[#1A2421]">Meet the Owner</a>
             <a href="#book-slot" onClick={(e) => smoothScroll(e, 'book-slot')} className="text-base font-semibold text-[#1A2421]">Appointments</a>
+            <a href="#retail-buy" onClick={(e) => smoothScroll(e, 'retail-buy')} className="text-base font-semibold text-[#1A2421]">Buy Remedies (Retail)</a>
             <a href="#bulk-orders" onClick={(e) => smoothScroll(e, 'bulk-orders')} className="text-base font-semibold text-[#1A2421]">Wholesale</a>
             <button
               onClick={() => {
@@ -307,24 +311,32 @@ export default function App() {
               Serving Ranchi with safe, gentle, and effective natural care. Visit our established counter at Upper Bazar or book a personal consultation below.
             </p>
 
-            {/* Dual Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 max-w-md md:max-w-none">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 max-w-xl md:max-w-none">
               <a 
                 href="#book-slot" 
                 onClick={(e) => smoothScroll(e, 'book-slot')}
-                className="btn-neon-emerald py-4 px-8 rounded-xl flex items-center justify-center gap-2 text-sm uppercase tracking-wider cursor-pointer font-bold text-center"
+                className="btn-neon-emerald py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer font-bold text-center"
               >
                 <CalendarDays className="w-5 h-5 shrink-0" />
                 Book Consultation
               </a>
               <a 
+                href="#retail-buy" 
+                onClick={(e) => smoothScroll(e, 'retail-buy')}
+                className="btn-neon-cyan-outline py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer font-bold text-center"
+              >
+                <ShoppingBag className="w-4.5 h-4.5 shrink-0 text-[#115E59]" />
+                Buy Remedies (Retail)
+              </a>
+              <a 
                 href="#bulk-orders" 
                 onClick={(e) => smoothScroll(e, 'bulk-orders')}
-                className="btn-neon-cyan-outline py-4 px-8 rounded-xl flex items-center justify-center gap-2 text-sm uppercase tracking-wider cursor-pointer font-bold text-center"
+                className="btn-neon-cyan-outline py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer font-bold text-center"
               >
-                <Briefcase className="w-5 h-5 shrink-0" />
-                Wholesale Inquiry
-                <ArrowUpRight className="w-4.5 h-4.5 text-[#115E59]" />
+                <Briefcase className="w-4.5 h-4.5 shrink-0 text-[#115E59]" />
+                Wholesale Portal
+                <ArrowUpRight className="w-4 h-4 text-[#115E59]" />
               </a>
             </div>
           </div>
@@ -544,7 +556,45 @@ export default function App() {
         </div>
       </section>
 
-      {/* ELEGANT SECTION DIVIDER */}
+      {/* ELEGANT SECTION DIVIDER 1 */}
+      <div className="relative w-full overflow-hidden bg-[#F9F6F0]/90 border-y border-[#EAE5DC] py-6 z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(17,94,89,0.04)_0%,rgba(15,118,110,0.04)_100%)] pointer-events-none"></div>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#0F766E]"></div>
+            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#0F766E]">Segment Shift</span>
+          </div>
+          <div className="h-[1px] flex-1 bg-gradient-to-r from-[#0F766E]/30 via-[#EAE5DC] to-[#115E59]/30 mx-4 hidden md:block"></div>
+          <div className="flex items-center gap-3">
+            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">Retail Pharmacy Home Delivery</span>
+            <div className="w-2.5 h-2.5 rounded-full bg-[#115E59]"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4.5 RETAIL BUY PORTAL (B2C REMEDIES) */}
+      <section id="retail-buy" className="py-24 bg-white/90 relative z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(17,94,89,0.03),transparent)] pointer-events-none"></div>
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
+              Retail Home Delivery Portal
+            </div>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#1E293B] tracking-tight">
+              Order Homeopathic Remedies Online
+            </h2>
+            <p className="text-sm md:text-base text-[#64748B] leading-relaxed">
+              Get genuine AYUSH-certified homeopathic dilutions, mother tinctures, and biochemic formulations delivered within 24 hours in Ranchi. Free delivery on orders above ₹500.
+            </p>
+          </div>
+
+          <RetailForm />
+
+        </div>
+      </section>
+
+      {/* ELEGANT SECTION DIVIDER 2 */}
       <div className="relative w-full overflow-hidden bg-[#F9F6F0]/90 border-y border-[#EAE5DC] py-6 z-10">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(17,94,89,0.04)_0%,rgba(15,118,110,0.04)_100%)] pointer-events-none"></div>
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -708,6 +758,7 @@ export default function App() {
                 localStorage.removeItem('clinic_appointments_seeded');
                 localStorage.removeItem('user_local_bookings');
                 localStorage.removeItem('bulk_orders');
+                localStorage.removeItem('retail_orders');
                 window.location.reload();
               }}
               className="text-rose-600 hover:text-rose-800 transition-colors font-extrabold uppercase tracking-wider bg-transparent border-0 cursor-pointer p-0 flex items-center gap-1"
