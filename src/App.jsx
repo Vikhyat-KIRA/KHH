@@ -293,18 +293,18 @@ export default function App() {
         <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-[#EAE5DC] transition-all duration-300 shadow-sm relative">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo Brand */}
-          <a href="#" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-[#115E59] flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105">
+          <a href="#" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-xl bg-[#115E59] flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105 shrink-0">
               <Activity className="w-5.5 h-5.5" />
             </div>
-            <div>
-              <span className="font-display font-extrabold text-xl tracking-tight text-[#1A2421] group-hover:text-[#115E59] transition-colors">
+            <div className="flex flex-col justify-center">
+              <span className="font-display font-extrabold text-xl tracking-tight text-[#1A2421] group-hover:text-[#115E59] transition-colors block whitespace-nowrap leading-none">
                 KANCHAN<span className="text-[#0F766E]"> HOMOEO HALL</span>
               </span>
-              <span className="hidden sm:block text-4xs font-bold uppercase tracking-widest text-[#5A6561] -mt-1">
+              <span className="hidden sm:block text-4xs font-bold uppercase tracking-widest text-[#5A6561] mt-1 whitespace-nowrap leading-none">
                 Holistic Healing &amp; Homoeopathic Remedies — Ranchi
               </span>
-              <span className="block sm:hidden text-[8px] font-bold uppercase tracking-widest text-[#5A6561] -mt-1">
+              <span className="block sm:hidden text-[8px] font-bold uppercase tracking-widest text-[#5A6561] mt-1 whitespace-nowrap leading-none">
                 Homoeopathy — Ranchi
               </span>
             </div>
