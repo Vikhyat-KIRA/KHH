@@ -4,6 +4,13 @@ import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
 
+const safeDateString = (dateVal) => {
+  if (!dateVal) return '';
+  if (typeof dateVal.toDate === 'function') return dateVal.toDate().toISOString();
+  if (dateVal.seconds) return new Date(dateVal.seconds * 1000).toISOString();
+  return dateVal;
+};
+
 export default function MyBookings({ onBackToHome, initialAdminMode = false, onlyShowType = null }) {
   const { language, t } = useLanguage();
   const [searchPhone, setSearchPhone] = useState('');
@@ -202,7 +209,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
         medicines_list: o.medicines_list || o.medicinesList || o.medicines || '',
         total_price: o.total_price || o.totalEstimatedPrice || o.totalPrice || 'TBD',
         lead_status: o.lead_status || o.status || 'Pending',
-        created_at: o.created_at || o.timestamp || ''
+        created_at: safeDateString(o.created_at || o.timestamp)
       }));
 
       const normalizedApts = appointments.map(a => ({
@@ -213,7 +220,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
         time_slot: a.time_slot || a.timeSlot || '',
         status: a.status || (a.cancelled ? 'CANCELLED' : 'Pending'),
         cancelled: a.cancelled || a.status === 'CANCELLED',
-        created_at: a.created_at || a.timestamp || ''
+        created_at: safeDateString(a.created_at || a.timestamp)
       }));
 
       const normalizedBulk = b2bQueries.map(q => ({
@@ -224,7 +231,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
         email: q.email || '',
         estimated_quantity: q.estimated_quantity || q.estimatedQuantity || q.quantity || '',
         requirements_text: q.requirements_text || q.requirements || '',
-        created_at: q.created_at || q.timestamp || ''
+        created_at: safeDateString(q.created_at || q.timestamp)
       }));
       
       // Sort: newest first
@@ -514,7 +521,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
         time_slot: a.time_slot || a.timeSlot || '',
         status: a.status || (a.cancelled ? 'CANCELLED' : 'Pending'),
         cancelled: a.cancelled || a.status === 'CANCELLED',
-        created_at: a.created_at || a.timestamp || ''
+        created_at: safeDateString(a.created_at || a.timestamp)
       }));
 
       const normalizedOrders = orderResults.map(o => ({
@@ -526,7 +533,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
         medicines_list: o.medicines_list || o.medicinesList || o.medicines || '',
         total_price: o.total_price || o.totalEstimatedPrice || o.totalPrice || 'TBD',
         lead_status: o.lead_status || o.status || 'Pending',
-        created_at: o.created_at || o.timestamp || ''
+        created_at: safeDateString(o.created_at || o.timestamp)
       }));
 
       // Sort
@@ -782,7 +789,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
     const isCancelled = status.toLowerCase() === 'cancelled';
     const isOutOfStock = status.toLowerCase().includes('out of stock');
     const isOutForDelivery = status.toLowerCase().includes('out for delivery');
-    const isDelivered = status.toLowerCase().includes('deliver') || status.toLowerCase().includes('complet');
+    const isDelivered = (status.toLowerCase().includes('deliver') && !isOutForDelivery) || status.toLowerCase().includes('complet');
 
     return (
       <div

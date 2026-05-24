@@ -323,7 +323,7 @@ export default function App() {
           </a>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-7 text-sm font-semibold tracking-wide">
+          <nav className="hidden xl:flex items-center gap-4 text-[13px] font-semibold tracking-wide">
             <button
               onClick={() => {
                 setActiveView('main');
@@ -375,7 +375,7 @@ export default function App() {
           </nav>
 
           {/* Quick CTA */}
-          <div className="hidden lg:flex items-center gap-4">
+          <div className="hidden xl:flex items-center gap-3">
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-2xs font-extrabold tracking-widest border uppercase transition-colors ${
               isOpenNow 
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700 animate-pulse' 
@@ -396,7 +396,7 @@ export default function App() {
           <button 
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-[#5A6561] hover:text-[#115E59] transition-colors"
+            className="xl:hidden p-2 text-[#5A6561] hover:text-[#115E59] transition-colors"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -404,7 +404,7 @@ export default function App() {
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden absolute top-20 left-0 w-full bg-white/95 backdrop-blur-xl border-b border-[#EAE5DC] p-6 flex flex-col gap-5 animate-fade-in shadow-md shadow-[#EFEAE2]">
+          <div className="xl:hidden absolute top-20 left-0 w-full bg-white/95 backdrop-blur-xl border-b border-[#EAE5DC] p-6 flex flex-col gap-5 animate-fade-in shadow-md shadow-[#EFEAE2]">
             <button
               onClick={() => {
                 setActiveView('main');
