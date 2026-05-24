@@ -61,12 +61,20 @@ export default function BulkForm() {
     };
 
     try {
+      let docAdded = false;
       if (isFirebaseConfigured) {
-        await addDoc(collection(db, 'bulk_orders'), {
-          ...payload,
-          created_at: new Date().toISOString()
-        });
-      } else {
+        try {
+          await addDoc(collection(db, 'bulk_orders'), {
+            ...payload,
+            created_at: new Date().toISOString()
+          });
+          docAdded = true;
+        } catch (firestoreErr) {
+          console.warn('⚠️ Direct Firestore write failed in BulkForm, falling back to local mockDb:', firestoreErr);
+        }
+      }
+
+      if (!docAdded) {
         await mockDb.addBulkOrder(payload);
       }
 

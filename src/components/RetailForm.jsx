@@ -296,12 +296,20 @@ export default function RetailForm() {
     };
 
     try {
+      let docAdded = false;
       if (isFirebaseConfigured) {
-        await addDoc(collection(db, 'retail_orders'), {
-          ...payload,
-          created_at: new Date().toISOString()
-        });
-      } else {
+        try {
+          await addDoc(collection(db, 'retail_orders'), {
+            ...payload,
+            created_at: new Date().toISOString()
+          });
+          docAdded = true;
+        } catch (firestoreErr) {
+          console.warn('⚠️ Direct Firestore write failed in RetailForm, falling back to local mockDb:', firestoreErr);
+        }
+      }
+
+      if (!docAdded) {
         await mockDb.addRetailOrder(payload);
       }
 
