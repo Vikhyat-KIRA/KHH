@@ -225,6 +225,51 @@ export default function PharmacistPortal() {
     }
   };
 
+  // Price updaters for Retail Orders in portal
+  const handleUpdatePortalOrderPrice = async (orderId, newPrice) => {
+    const order = retailOrders.find(o => o.id === orderId);
+    if (!order) return;
+    if ((order.total_price || '').trim() === (newPrice || '').trim()) return;
+
+    // Optimistic Update
+    setRetailOrders(prev => prev.map(ord => ord.id === orderId ? { ...ord, total_price: newPrice, totalPrice: newPrice, totalEstimatedPrice: newPrice } : ord));
+
+    try {
+      let docUpdated = false;
+      if (isFirebaseConfigured && !orderId.startsWith('Retail_Orders_')) {
+        try {
+          await updateDoc(doc(db, 'retail_orders', orderId), {
+            total_price: newPrice
+          });
+          docUpdated = true;
+        } catch (firestoreErr) {
+          console.warn("⚠️ Firestore price update failed, falling back to mockDb:", firestoreErr);
+        }
+      }
+
+      if (!docUpdated) {
+        await mockDb.updateRetailOrderPrice(orderId, newPrice);
+      }
+
+      // Sync with Google Sheets (fire-and-forget)
+      fetch('/api/updateSheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'update_order_price',
+          data: {
+            phone: order.phone,
+            timestamp: order.timestamp || (order.created_at ? new Date(order.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''),
+            price: newPrice
+          }
+        })
+      }).catch(e => console.error('Sheets price sync failed:', e));
+
+    } catch (err) {
+      console.error('Failed to update retail order price from portal:', err);
+    }
+  };
+
   // Status updaters for Appointments in portal
   const handleUpdatePortalAptStatus = async (aptId, newStatus) => {
     const apt = consultations.find(a => a.id === aptId);
@@ -476,7 +521,24 @@ export default function PharmacistPortal() {
                     </div>
                     {order.estimatedMedicinesPrice && <div className="text-[10px] text-emerald-400 font-bold mt-0.5">Est. {order.estimatedMedicinesPrice}</div>}
                   </td>
-                  <td className="p-4 font-bold text-white">{order.totalEstimatedPrice || order.totalPrice || 'TBD'}</td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-1">
+                      <span className="text-emerald-500 font-bold">₹</span>
+                      <input
+                        type="text"
+                        key={order.id + '_' + (order.total_price || order.totalEstimatedPrice)}
+                        defaultValue={order.total_price || order.totalEstimatedPrice || ''}
+                        placeholder="TBD"
+                        className="w-20 px-2 py-1 text-xs bg-[#0B1120] border border-[#1E293B] focus:border-[#0F766E] rounded-lg text-[#2DD4BF] font-mono text-right focus:outline-none focus:ring-1 focus:ring-[#0F766E]/40 transition-all font-bold"
+                        onBlur={(e) => handleUpdatePortalOrderPrice(order.id, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.target.blur();
+                          }
+                        }}
+                      />
+                    </div>
+                  </td>
                   <td className="p-4">{renderStatus(order.status || order.lead_status)}</td>
                   <td className="p-4">
                     <div className="relative inline-block w-40">

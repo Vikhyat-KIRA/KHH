@@ -862,7 +862,7 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
 
           <div className="col-span-1 md:col-span-2 space-y-1">
             <span className="block text-[9px] uppercase tracking-wider font-bold text-slate-400">{language === 'en' ? 'Remedies Ordered' : 'ऑर्डर की गई दवाएं'}</span>
-            <div className="bg-slate-950 border border-slate-900 text-slate-350 font-mono text-[10px] p-2.5 rounded-lg whitespace-pre-wrap leading-tight">
+            <div className="text-slate-800 font-sans text-xs whitespace-pre-wrap leading-relaxed mt-1 pl-1 font-semibold">
               {order.medicines_list || order.medicines}
             </div>
           </div>
