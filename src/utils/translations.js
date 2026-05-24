@@ -154,6 +154,8 @@ export const translations = {
       valUnexpected: "An unexpected error occurred. Please verify your details and try again."
     },
     bulkForm: {
+      formTitle: "Wholesale Distribution Inquiry",
+      formDesc: "Licensed pharmacies, clinics, and bulk buyers in Jharkhand can request custom wholesale quotes. Our distribution agents will verify AYUSH credentials and contact you with custom trade discounts.",
       clinicName: "Pharmacy / Institution Name",
       clinicPlaceholder: "e.g. Ranchi Homoeo Clinic",
       license: "Drug License Number (Required for trade rates)",
@@ -435,6 +437,8 @@ export const translations = {
       valUnexpected: "एक अप्रत्याशित त्रुटि हुई। कृपया अपने विवरणों को सत्यापित करें और पुनः प्रयास करें।"
     },
     bulkForm: {
+      formTitle: "थोक वितरण पूछताछ",
+      formDesc: "झारखंड में लाइसेंस प्राप्त फार्मेसी, क्लिनिक और थोक खरीदार थोक दरों के लिए अनुरोध कर सकते हैं। हमारे वितरण एजेंट आपके आयुष क्रेडेंशियल्स को सत्यापित करेंगे और कस्टम ट्रेड छूट के साथ आपसे संपर्क करेंगे.",
       clinicName: "फार्मेसी / संस्था का नाम",
       clinicPlaceholder: "उदा. रांची होम्योपैथी क्लिनिक",
       license: "ड्रग लाइसेंस नंबर (थोक दरों के लिए आवश्यक)",
