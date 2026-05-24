@@ -709,58 +709,80 @@ export default function App() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
             {/* Left Column: Doctor Profile Card */}
-            <div className="lg:col-span-4 space-y-6">
-              <div className="relative group rounded-2xl overflow-hidden border border-[#EAE5DC] bg-white p-5 shadow-lg shadow-[#EFEAE2]/50 transition-all duration-300 hover:shadow-xl">
-                {/* Glowing subtle ring */}
-                <div className="absolute inset-0 border-2 border-white/40 rounded-2xl pointer-events-none z-10"></div>
+            <div className="lg:col-span-4 h-full">
+              <div className="relative group rounded-3xl overflow-hidden border border-[#EAE5DC] bg-white p-6 shadow-lg shadow-[#EFEAE2]/50 transition-all duration-300 hover:shadow-xl flex flex-col justify-between h-full">
+                {/* Decorative glowing gradient ring */}
+                <div className="absolute inset-0 border-2 border-white/50 rounded-3xl pointer-events-none z-10"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none -mr-16 -mt-16"></div>
                 
-                {/* Doctor Photo */}
-                <div className="aspect-square w-full rounded-xl overflow-hidden bg-[#FDFBF7] border border-[#EAE5DC]/60 relative flex items-center justify-center shadow-inner">
-                  <img 
-                    src="/doctor.jpg" 
-                    alt="Dr. Harjeet Singh - Expert Consulting Physician" 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute top-3 left-3 bg-teal-600/90 backdrop-blur-sm text-white text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-lg border border-teal-500/20 shadow-sm z-20">
-                    {language === 'en' ? 'Expert Consultant' : 'विशेषज्ञ सलाहकार'}
+                <div className="space-y-6">
+                  {/* Doctor Photo centered in circle */}
+                  <div className="flex flex-col items-center">
+                    <div className="relative w-48 h-48 rounded-full p-1.5 bg-gradient-to-tr from-[#115E59] via-emerald-250 to-amber-500 shadow-md">
+                      <div className="w-full h-full rounded-full overflow-hidden bg-slate-900 border border-white/20 relative">
+                        <img 
+                          src="/doctor.jpg" 
+                          alt="Dr. Harjeet Singh - Expert Consulting Physician" 
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      </div>
+                      
+                      {/* Active Status Beacon */}
+                      <span className="absolute bottom-2 right-4 flex h-4.5 w-4.5 z-20">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-4.5 w-4.5 bg-emerald-500 border-2 border-white"></span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Doctor Details */}
+                  <div className="text-center space-y-2.5">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#115E59]/5 border border-[#115E59]/10 text-[#115E59] text-[10px] font-black uppercase tracking-wider">
+                      <span>🩺 {language === 'en' ? 'Senior OPD Physician' : 'वरिष्ठ ओपीडी चिकित्सक'}</span>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h3 className="text-xl font-black text-[#1A2421] tracking-tight">
+                        {language === 'en' ? 'Dr. Harjeet Singh' : 'डॉ. हरजीत सिंह'}
+                      </h3>
+                      <p className="text-[10px] font-extrabold text-[#115E59] tracking-wider uppercase leading-none">
+                        {language === 'en' ? 'B.H.M.S. (Senior Consulting Physician)' : 'बी.एच.एम.एस. (वरिष्ठ परामर्श चिकित्सक)'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="h-[1px] bg-gradient-to-r from-transparent via-[#EAE5DC] to-transparent my-1"></div>
+
+                  {/* Doctor Info Rows */}
+                  <div className="space-y-3.5 text-xs">
+                    <div className="flex items-start gap-3 text-slate-650 leading-relaxed font-medium">
+                      <span className="w-5 h-5 rounded-lg bg-teal-50 border border-teal-200/50 flex items-center justify-center shrink-0 font-bold text-teal-600 text-xs">⭐</span>
+                      <span>
+                        {language === 'en' ? 'Expertise: Chronic diagnostics, biochemic formulations, and root-cause homoeopathic dilutions.' : 'विशेषज्ञता: क्रोनिक डायग्नोस्टिक्स, बायोकेमिक फॉर्मूलेशन और मूल-कारण होम्योपैथिक डाइल्यूशन।'}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-3 text-slate-650 leading-relaxed font-medium">
+                      <span className="w-5 h-5 rounded-lg bg-teal-50 border border-teal-200/50 flex items-center justify-center shrink-0 font-bold text-teal-600 text-xs">🕒</span>
+                      <span>
+                        <strong>{language === 'en' ? 'OPD Hours:' : 'ओपीडी समय:'}</strong> {language === 'en' ? '3:00 PM — 5:00 PM (Monday-Saturday)' : 'दोपहर 3:00 बजे — शाम 5:00 बजे (सोमवार-शनिवार)'}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-3 text-slate-650 leading-relaxed font-medium">
+                      <span className="w-5 h-5 rounded-lg bg-teal-50 border border-teal-200/50 flex items-center justify-center shrink-0 font-bold text-teal-600 text-xs">📍</span>
+                      <span>
+                        <strong>{language === 'en' ? 'OPD Slip:' : 'ओपीडी पर्ची:'}</strong> {language === 'en' ? 'Token confirmed instantly for counters in Ranchi.' : 'रांची में काउंटरों के लिए टोकन तुरंत पुष्ट किया जाता है।'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Doctor Details */}
-                <div className="mt-5 space-y-3">
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-black text-[#1A2421] tracking-tight">
-                      {language === 'en' ? 'Dr. Harjeet Singh' : 'डॉ. हरजीत सिंह'}
-                    </h3>
-                    <p className="text-2xs font-extrabold text-[#115E59] tracking-wider uppercase">
-                      {language === 'en' ? 'B.H.M.S. | Senior Consulting Physician' : 'बी.एच.एम.एस. | वरिष्ठ परामर्श चिकित्सक'}
-                    </p>
-                  </div>
-                  
-                  <div className="h-[1px] bg-[#EAE5DC]/60 my-2"></div>
-
-                  <div className="space-y-3 text-xs">
-                    <div className="flex items-start gap-2.5 text-slate-600 leading-relaxed font-medium">
-                      <span className="shrink-0 text-teal-600 font-bold text-sm">🩺</span>
-                      <span>
-                        {language === 'en' ? 'Specialist in clinical diagnostics, chronic constitutional care, and root-cause homoeopathic therapies.' : 'नैदानिक निदान, पुराने संवैधानिक उपचार और मूल-कारण होम्योपैथिक उपचार में विशेषज्ञ।'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-slate-650 leading-relaxed font-semibold">
-                      <span className="shrink-0 text-teal-600 font-bold text-sm">⏰</span>
-                      <span>
-                        {language === 'en' ? 'OPD Hours: 3:00 PM — 5:00 PM (Mon-Sat)' : 'ओपीडी समय: दोपहर 3:00 बजे — शाम 5:00 बजे (सोम-शनि)'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-slate-650 leading-relaxed font-semibold">
-                      <span className="shrink-0 text-teal-600 font-bold text-sm">📍</span>
-                      <span>
-                        {language === 'en' ? 'OPD Slip Token Confirmed Instantly' : 'ओपीडी पर्ची टोकन तुरंत पुष्ट किया जाता है'}
-                      </span>
-                    </div>
-                  </div>
+                {/* Bottom Quote / Assurance */}
+                <div className="mt-6 pt-5 border-t border-[#EAE5DC]/60 text-center">
+                  <p className="text-3xs italic font-black text-slate-400 leading-normal uppercase tracking-wider">
+                    {language === 'en' ? '"Dedicated to safe, gentle, and holistic wellness for every family."' : '"प्रत्येक परिवार के लिए सुरक्षित, सौम्य और समग्र कल्याण के लिए समर्पित।"'}
+                  </p>
                 </div>
               </div>
             </div>
