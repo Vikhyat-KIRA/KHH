@@ -515,81 +515,165 @@ export default function AdminDashboard({ onLogout }) {
     if (activeTab === 'retail') {
       if (filteredRetail.length === 0) return <EmptyState tab="Retail Orders" isFiltered={retailOrders.length > 0} />;
       return (
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
-            <thead className="bg-[#0A1020]">
-              <tr className="border-b border-[#1E293B] text-[10px] uppercase tracking-widest text-slate-500">
-                <th className="p-4 font-bold rounded-tl-2xl">{language === 'en' ? 'Timestamp' : 'समय'}</th>
-                <th className="p-4 font-bold">{t('portal.customer')}</th>
-                <th className="p-4 font-bold">{language === 'en' ? 'Contact' : 'संपर्क'}</th>
-                <th className="p-4 font-bold">{language === 'en' ? 'Medicines (Est. Value)' : 'दवाएं (अनुमानित मूल्य)'}</th>
-                <th className="p-4 font-bold">{t('portal.totalPrice')}</th>
-                <th className="p-4 font-bold">{t('portal.status')}</th>
-                <th className="p-4 font-bold rounded-tr-2xl">{language === 'en' ? 'Action' : 'कार्रवाई'}</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-[#1E293B]/50">
-              {filteredRetail.map((order, i) => (
-                <tr key={i} className="hover:bg-[#1E293B]/30 transition-colors">
-                  <td className="p-4 text-xs text-slate-400">{order.timestamp || order.created_at}</td>
-                  <td className="p-4 font-bold text-white">{order.customerName || order.name}</td>
-                  <td className="p-4 text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <span>{order.phone}</span>
-                      {order.phone && (
-                        <a href={`https://wa.me/91${order.phone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`Hello ${order.customerName || order.name}, regarding your order from Kanchan Homoeo Hall for: ${order.medicinesList || order.medicines}. We wanted to inform you...`)}`} target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400 transition-colors" title="WhatsApp Customer">
-                          <MessageCircle className="w-3.5 h-3.5" />
-                        </a>
-                      )}
+        <div>
+          {/* Card Layout for Mobile */}
+          <div className="block md:hidden space-y-4 p-4">
+            {filteredRetail.map((order, i) => (
+              <div key={i} className="bg-[#111827] border border-[#1E293B] rounded-2xl p-4 space-y-4 shadow-xl hover:border-[#0F766E]/50 transition-all">
+                <div className="flex items-start justify-between gap-2 border-b border-[#1E293B]/60 pb-3">
+                  <span className="text-[10px] text-slate-450 font-mono font-bold">{order.timestamp || order.created_at}</span>
+                  {renderStatus(order.status || order.lead_status)}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-extrabold text-white text-base tracking-tight">{order.customerName || order.name}</h4>
+                    {order.phone && (
+                      <a 
+                        href={`https://wa.me/91${order.phone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`Hello ${order.customerName || order.name}, regarding your order from Kanchan Homoeo Hall for: ${order.medicinesList || order.medicines}. We wanted to inform you...`)}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/25 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>WhatsApp</span>
+                      </a>
+                    )}
+                  </div>
+                  
+                  {order.phone && <div className="text-xs text-slate-350 font-mono font-bold">📞 {order.phone}</div>}
+                  {order.email && <div className="text-[10px] text-slate-500 truncate">{order.email}</div>}
+                  {order.address && (
+                    <div className="text-xs text-slate-400 bg-[#0B1120] border border-[#1E293B]/40 rounded-xl p-2.5 mt-1 whitespace-pre-wrap">
+                      <span className="text-[9px] uppercase tracking-wider text-slate-550 font-bold block mb-1">📍 Delivery Address</span>
+                      {order.address}
                     </div>
-                    <div className="text-[10px] text-slate-500 truncate max-w-[150px]">{order.email}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className="whitespace-normal min-w-[200px] text-slate-300">
-                      {order.medicinesList || order.medicines}
-                    </div>
-                    {order.estimatedMedicinesPrice && <div className="text-[10px] text-emerald-400 font-bold mt-0.5">Est. {order.estimatedMedicinesPrice}</div>}
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-1">
-                      <span className="text-emerald-500 font-bold">₹</span>
+                  )}
+                </div>
+
+                <div className="bg-[#0B1120]/60 border border-[#1E293B] rounded-xl p-3 space-y-1">
+                  <span className="text-[9px] uppercase tracking-wider text-[#2DD4BF] font-black block">💊 Medicines</span>
+                  <p className="text-xs text-slate-350 whitespace-pre-wrap leading-relaxed">{order.medicinesList || order.medicines}</p>
+                  {order.estimatedMedicinesPrice && <div className="text-[10px] text-emerald-400 font-bold mt-1">Est. {order.estimatedMedicinesPrice}</div>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#1E293B]/60">
+                  <div className="space-y-1">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-black">💰 Total Price</span>
+                    <div className="flex items-center gap-1 w-full bg-[#0B1120] border border-[#1E293B] rounded-lg px-2 py-1.5">
+                      <span className="text-emerald-500 font-bold text-xs">₹</span>
                       <input
                         type="text"
-                        key={order.id + '_' + (order.total_price || order.totalEstimatedPrice)}
+                        key={'mobile_order_' + order.id + '_' + (order.total_price || order.totalEstimatedPrice)}
                         defaultValue={order.total_price || order.totalEstimatedPrice || ''}
                         placeholder="TBD"
-                        className="w-20 px-2 py-1 text-xs bg-[#0B1120] border border-[#1E293B] focus:border-[#0F766E] rounded-lg text-[#2DD4BF] font-mono text-right focus:outline-none focus:ring-1 focus:ring-[#0F766E]/40 transition-all font-bold"
+                        className="w-full bg-transparent border-none focus:outline-none text-[#2DD4BF] font-mono text-xs font-bold text-right outline-none"
                         onBlur={(e) => handleUpdatePortalOrderPrice(order.id, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.target.blur();
-                          }
-                        }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
                       />
                     </div>
-                  </td>
-                  <td className="p-4">{renderStatus(order.status || order.lead_status)}</td>
-                  <td className="p-4">
-                    <div className="relative inline-block w-40">
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-black">⚙️ Update Status</span>
+                    <div className="relative w-full">
                       <select
                         value={getNormalizedRetailStatus(order.status || order.lead_status)}
                         onChange={(e) => handleUpdatePortalOrderStatus(order.id, e.target.value)}
-                        className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
+                        className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 pl-2.5 pr-8 text-[11px] text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
                       >
-                        <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ {language === 'en' ? 'Pending' : 'लंबित'}</option>
-                        <option value="Booked" className="bg-[#0A1020] text-teal-400">📦 {language === 'en' ? 'Booked' : 'बुक किया गया'}</option>
-                        <option value="Out for Delivery" className="bg-[#0A1020] text-amber-500">🚚 {language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}</option>
-                        <option value="Out of Stock" className="bg-[#0A1020] text-orange-400">⚠️ {language === 'en' ? 'Out of Stock' : 'स्टॉक में नहीं'}</option>
-                        <option value="Delivered" className="bg-[#0A1020] text-emerald-400">✅ {language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}</option>
-                        <option value="Cancelled" className="bg-[#0A1020] text-rose-400">❌ {language === 'en' ? 'Cancelled' : 'रद्द'}</option>
+                        <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ Pending</option>
+                        <option value="Booked" className="bg-[#0A1020] text-teal-400">📦 Booked</option>
+                        <option value="Out for Delivery" className="bg-[#0A1020] text-amber-500">🚚 Out for Delivery</option>
+                        <option value="Out of Stock" className="bg-[#0A1020] text-orange-400">⚠️ Out of Stock</option>
+                        <option value="Delivered" className="bg-[#0A1020] text-emerald-400">✅ Delivered</option>
+                        <option value="Cancelled" className="bg-[#0A1020] text-rose-400">❌ Cancelled</option>
                       </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
                     </div>
-                  </td>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
+              <thead className="bg-[#0A1020]">
+                <tr className="border-b border-[#1E293B] text-[10px] uppercase tracking-widest text-slate-500">
+                  <th className="p-4 font-bold rounded-tl-2xl">{language === 'en' ? 'Timestamp' : 'समय'}</th>
+                  <th className="p-4 font-bold">{t('portal.customer')}</th>
+                  <th className="p-4 font-bold">{language === 'en' ? 'Contact' : 'संपर्क'}</th>
+                  <th className="p-4 font-bold">{language === 'en' ? 'Medicines (Est. Value)' : 'दवाएं (अनुमानित मूल्य)'}</th>
+                  <th className="p-4 font-bold">{t('portal.totalPrice')}</th>
+                  <th className="p-4 font-bold">{t('portal.status')}</th>
+                  <th className="p-4 font-bold rounded-tr-2xl">{language === 'en' ? 'Action' : 'कार्रवाई'}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="text-sm divide-y divide-[#1E293B]/50">
+                {filteredRetail.map((order, i) => (
+                  <tr key={i} className="hover:bg-[#1E293B]/30 transition-colors">
+                    <td className="p-4 text-xs text-slate-400">{order.timestamp || order.created_at}</td>
+                    <td className="p-4 font-bold text-white">{order.customerName || order.name}</td>
+                    <td className="p-4 text-slate-300">
+                      <div className="flex items-center gap-2">
+                        <span>{order.phone}</span>
+                        {order.phone && (
+                          <a href={`https://wa.me/91${order.phone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`Hello ${order.customerName || order.name}, regarding your order from Kanchan Homoeo Hall for: ${order.medicinesList || order.medicines}. We wanted to inform you...`)}`} target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400 transition-colors" title="WhatsApp Customer">
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-500 truncate max-w-[150px]">{order.email}</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="whitespace-normal min-w-[200px] text-slate-300">
+                        {order.medicinesList || order.medicines}
+                      </div>
+                      {order.estimatedMedicinesPrice && <div className="text-[10px] text-emerald-400 font-bold mt-0.5">Est. {order.estimatedMedicinesPrice}</div>}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-1">
+                        <span className="text-emerald-500 font-bold">₹</span>
+                        <input
+                          type="text"
+                          key={order.id + '_' + (order.total_price || order.totalEstimatedPrice)}
+                          defaultValue={order.total_price || order.totalEstimatedPrice || ''}
+                          placeholder="TBD"
+                          className="w-20 px-2 py-1 text-xs bg-[#0B1120] border border-[#1E293B] focus:border-[#0F766E] rounded-lg text-[#2DD4BF] font-mono text-right focus:outline-none focus:ring-1 focus:ring-[#0F766E]/40 transition-all font-bold"
+                          onBlur={(e) => handleUpdatePortalOrderPrice(order.id, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.target.blur();
+                            }
+                          }}
+                        />
+                      </div>
+                    </td>
+                    <td className="p-4">{renderStatus(order.status || order.lead_status)}</td>
+                    <td className="p-4">
+                      <div className="relative inline-block w-40">
+                        <select
+                          value={getNormalizedRetailStatus(order.status || order.lead_status)}
+                          onChange={(e) => handleUpdatePortalOrderStatus(order.id, e.target.value)}
+                          className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
+                        >
+                          <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ {language === 'en' ? 'Pending' : 'लंबित'}</option>
+                          <option value="Booked" className="bg-[#0A1020] text-teal-400">📦 {language === 'en' ? 'Booked' : 'बुक किया गया'}</option>
+                          <option value="Out for Delivery" className="bg-[#0A1020] text-amber-500">🚚 {language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}</option>
+                          <option value="Out of Stock" className="bg-[#0A1020] text-orange-400">⚠️ {language === 'en' ? 'Out of Stock' : 'स्टॉक में नहीं'}</option>
+                          <option value="Delivered" className="bg-[#0A1020] text-emerald-400">✅ {language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}</option>
+                          <option value="Cancelled" className="bg-[#0A1020] text-rose-400">❌ {language === 'en' ? 'Cancelled' : 'रद्द'}</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       );
     }
@@ -597,30 +681,36 @@ export default function AdminDashboard({ onLogout }) {
     if (activeTab === 'consultations') {
       if (filteredConsults.length === 0) return <EmptyState tab="Consultations" isFiltered={consultations.length > 0} />;
       return (
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
-            <thead className="bg-[#0A1020]">
-              <tr className="border-b border-[#1E293B] text-[10px] uppercase tracking-widest text-slate-500">
-                <th className="p-4 font-bold rounded-tl-2xl">{language === 'en' ? 'Timestamp' : 'समय'}</th>
-                <th className="p-4 font-bold">{t('portal.patient')}</th>
-                <th className="p-4 font-bold">{t('portal.phone')}</th>
-                <th className="p-4 font-bold">{t('portal.date')}</th>
-                <th className="p-4 font-bold">{t('portal.slot')}</th>
-                <th className="p-4 font-bold">{t('portal.status')}</th>
-                <th className="p-4 font-bold rounded-tr-2xl">{language === 'en' ? 'Action' : 'कार्रवाई'}</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-[#1E293B]/50">
-              {filteredConsults.map((apt, i) => (
-                <tr key={i} className="hover:bg-[#1E293B]/30 transition-colors">
-                  <td className="p-4 text-xs text-slate-400">{apt.timestamp || apt.created_at}</td>
-                  <td className="p-4 font-bold text-white">{apt.patientName || apt.patient_name}</td>
-                  <td className="p-4 text-slate-300">{apt.patientPhone || apt.patient_phone}</td>
-                  <td className="p-4 text-slate-300 font-medium">{apt.appointmentDate || apt.appointment_date}</td>
-                  <td className="p-4 text-white font-bold">{apt.timeSlot || apt.time_slot}</td>
-                  <td className="p-4">{renderStatus(apt.status)}</td>
-                  <td className="p-4">
-                    <div className="relative inline-block w-36">
+        <div>
+          {/* Card Layout for Mobile */}
+          <div className="block md:hidden space-y-4 p-4">
+            {filteredConsults.map((apt, i) => (
+              <div key={i} className="bg-[#111827] border border-[#1E293B] rounded-2xl p-4 space-y-4 shadow-xl hover:border-[#0F766E]/50 transition-all">
+                <div className="flex items-start justify-between gap-2 border-b border-[#1E293B]/60 pb-3">
+                  <span className="text-[10px] text-slate-450 font-mono font-bold">{apt.timestamp || apt.created_at}</span>
+                  {renderStatus(apt.status)}
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-extrabold text-white text-base tracking-tight">{apt.patientName || apt.patient_name}</h4>
+                  {apt.patientPhone && <div className="text-xs text-slate-350 font-mono font-bold">📞 {apt.patientPhone || apt.patient_phone}</div>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 bg-[#0B1120]/60 border border-[#1E293B] rounded-xl p-3">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-wider text-[#2DD4BF] font-black block">📅 Date</span>
+                    <span className="text-xs text-slate-300 font-medium">{apt.appointmentDate || apt.appointment_date}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase tracking-wider text-[#2DD4BF] font-black block">⏰ Time Slot</span>
+                    <span className="text-xs text-white font-bold">{apt.timeSlot || apt.time_slot}</span>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-[#1E293B]/60">
+                  <div className="space-y-1">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-black">⚙️ Update Status</span>
+                    <div className="relative w-full">
                       <select
                         value={
                           ['Confirmed', 'Booked', 'BOOKED'].includes(apt.status) ? 'Confirmed' :
@@ -628,19 +718,66 @@ export default function AdminDashboard({ onLogout }) {
                           'Pending'
                         }
                         onChange={(e) => handleUpdatePortalAptStatus(apt.id, e.target.value)}
-                        className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
+                        className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 pl-2.5 pr-8 text-[11px] text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
                       >
-                        <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ {language === 'en' ? 'Pending' : 'लंबित'}</option>
-                        <option value="Confirmed" className="bg-[#0A1020] text-emerald-400">✅ {language === 'en' ? 'Confirmed' : 'पुष्ट'}</option>
-                        <option value="CANCELLED" className="bg-[#0A1020] text-rose-400">❌ {language === 'en' ? 'Cancelled' : 'रद्द'}</option>
+                        <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ Pending</option>
+                        <option value="Confirmed" className="bg-[#0A1020] text-emerald-400">✅ Confirmed</option>
+                        <option value="CANCELLED" className="bg-[#0A1020] text-rose-400">❌ Cancelled</option>
                       </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
                     </div>
-                  </td>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
+              <thead className="bg-[#0A1020]">
+                <tr className="border-b border-[#1E293B] text-[10px] uppercase tracking-widest text-slate-500">
+                  <th className="p-4 font-bold rounded-tl-2xl">{language === 'en' ? 'Timestamp' : 'समय'}</th>
+                  <th className="p-4 font-bold">{t('portal.patient')}</th>
+                  <th className="p-4 font-bold">{t('portal.phone')}</th>
+                  <th className="p-4 font-bold">{t('portal.date')}</th>
+                  <th className="p-4 font-bold">{t('portal.slot')}</th>
+                  <th className="p-4 font-bold">{t('portal.status')}</th>
+                  <th className="p-4 font-bold rounded-tr-2xl">{language === 'en' ? 'Action' : 'कार्रवाई'}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="text-sm divide-y divide-[#1E293B]/50">
+                {filteredConsults.map((apt, i) => (
+                  <tr key={i} className="hover:bg-[#1E293B]/30 transition-colors">
+                    <td className="p-4 text-xs text-slate-400">{apt.timestamp || apt.created_at}</td>
+                    <td className="p-4 font-bold text-white">{apt.patientName || apt.patient_name}</td>
+                    <td className="p-4 text-slate-300">{apt.patientPhone || apt.patient_phone}</td>
+                    <td className="p-4 text-slate-300 font-medium">{apt.appointmentDate || apt.appointment_date}</td>
+                    <td className="p-4 text-white font-bold">{apt.timeSlot || apt.time_slot}</td>
+                    <td className="p-4">{renderStatus(apt.status)}</td>
+                    <td className="p-4">
+                      <div className="relative inline-block w-36">
+                        <select
+                          value={
+                            ['Confirmed', 'Booked', 'BOOKED'].includes(apt.status) ? 'Confirmed' :
+                            (['CANCELLED', 'Cancelled'].includes(apt.status) || apt.cancelled) ? 'CANCELLED' :
+                            'Pending'
+                          }
+                          onChange={(e) => handleUpdatePortalAptStatus(apt.id, e.target.value)}
+                          className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
+                        >
+                          <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ {language === 'en' ? 'Pending' : 'लंबित'}</option>
+                          <option value="Confirmed" className="bg-[#0A1020] text-emerald-400">✅ {language === 'en' ? 'Confirmed' : 'पुष्ट'}</option>
+                          <option value="CANCELLED" className="bg-[#0A1020] text-rose-400">❌ {language === 'en' ? 'Cancelled' : 'रद्द'}</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       );
     }
@@ -648,39 +785,69 @@ export default function AdminDashboard({ onLogout }) {
     if (activeTab === 'wholesale') {
       if (filteredWholesale.length === 0) return <EmptyState tab="Wholesale Queries" isFiltered={wholesaleQueries.length > 0} />;
       return (
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
-            <thead className="bg-[#0A1020]">
-              <tr className="border-b border-[#1E293B] text-[10px] uppercase tracking-widest text-slate-500">
-                <th className="p-4 font-bold rounded-tl-2xl">{language === 'en' ? 'Timestamp' : 'समय'}</th>
-                <th className="p-4 font-bold">{t('portal.company')} / {language === 'en' ? 'Contact' : 'संपर्क'}</th>
-                <th className="p-4 font-bold">{language === 'en' ? 'Contact Info' : 'संपर्क जानकारी'}</th>
-                <th className="p-4 font-bold">{language === 'en' ? 'Quantity' : 'मात्रा'}</th>
-                <th className="p-4 font-bold rounded-tr-2xl">{t('portal.details')}</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-[#1E293B]/50">
-              {filteredWholesale.map((query, i) => (
-                <tr key={i} className="hover:bg-[#1E293B]/30 transition-colors">
-                  <td className="p-4 text-xs text-slate-400">{query.timestamp || query.created_at}</td>
-                  <td className="p-4">
-                    <div className="font-bold text-white">{query.companyName || query.company_name}</div>
-                    <div className="text-[10px] text-slate-400">{query.contactName || query.name}</div>
-                  </td>
-                  <td className="p-4 text-slate-300">
-                    <div>{query.phone}</div>
-                    <div className="text-[10px] text-slate-500">{query.email}</div>
-                  </td>
-                  <td className="p-4 font-bold text-[#0F766E]">{query.estimatedQuantity || query.quantity}</td>
-                  <td className="p-4">
-                    <div className="whitespace-normal min-w-[250px] text-slate-300">
-                      {query.requirements}
-                    </div>
-                  </td>
+        <div>
+          {/* Card Layout for Mobile */}
+          <div className="block md:hidden space-y-4 p-4">
+            {filteredWholesale.map((query, i) => (
+              <div key={i} className="bg-[#111827] border border-[#1E293B] rounded-2xl p-4 space-y-4 shadow-xl hover:border-[#0F766E]/50 transition-all">
+                <div className="flex items-start justify-between gap-2 border-b border-[#1E293B]/60 pb-3">
+                  <span className="text-[10px] text-slate-450 font-mono font-bold">{query.timestamp || query.created_at}</span>
+                  <span className="bg-[#0F766E]/20 text-[#2DD4BF] px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-[#0F766E]/30">B2B Query</span>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-extrabold text-white text-base tracking-tight">{query.companyName || query.company_name}</h4>
+                  <div className="text-xs text-slate-400 font-medium">Contact: <span className="text-slate-200 font-bold">{query.contactName || query.name}</span></div>
+                  {query.phone && <div className="text-xs text-slate-350 font-mono font-bold">📞 {query.phone}</div>}
+                  {query.email && <div className="text-[10px] text-slate-500 truncate">{query.email}</div>}
+                </div>
+
+                <div className="bg-[#0B1120]/60 border border-[#1E293B] rounded-xl p-3 space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] uppercase tracking-wider text-[#2DD4BF] font-black block">📋 Requirements</span>
+                    <span className="text-xs text-emerald-400 font-extrabold">Qty: {query.estimatedQuantity || query.quantity}</span>
+                  </div>
+                  <p className="text-xs text-slate-355 whitespace-pre-wrap leading-relaxed">{query.requirements}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
+              <thead className="bg-[#0A1020]">
+                <tr className="border-b border-[#1E293B] text-[10px] uppercase tracking-widest text-slate-500">
+                  <th className="p-4 font-bold rounded-tl-2xl">{language === 'en' ? 'Timestamp' : 'समय'}</th>
+                  <th className="p-4 font-bold">{t('portal.company')} / {language === 'en' ? 'Contact' : 'संपर्क'}</th>
+                  <th className="p-4 font-bold">{language === 'en' ? 'Contact Info' : 'संपर्क जानकारी'}</th>
+                  <th className="p-4 font-bold">{language === 'en' ? 'Quantity' : 'मात्रा'}</th>
+                  <th className="p-4 font-bold rounded-tr-2xl">{t('portal.details')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="text-sm divide-y divide-[#1E293B]/50">
+                {filteredWholesale.map((query, i) => (
+                  <tr key={i} className="hover:bg-[#1E293B]/30 transition-colors">
+                    <td className="p-4 text-xs text-slate-400">{query.timestamp || query.created_at}</td>
+                    <td className="p-4">
+                      <div className="font-bold text-white">{query.companyName || query.company_name}</div>
+                      <div className="text-[10px] text-slate-400">{query.contactName || query.name}</div>
+                    </td>
+                    <td className="p-4 text-slate-300">
+                      <div>{query.phone}</div>
+                      <div className="text-[10px] text-slate-500">{query.email}</div>
+                    </td>
+                    <td className="p-4 font-bold text-[#0F766E]">{query.estimatedQuantity || query.quantity}</td>
+                    <td className="p-4">
+                      <div className="whitespace-normal min-w-[250px] text-slate-300">
+                        {query.requirements}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       );
     }
@@ -698,7 +865,7 @@ export default function AdminDashboard({ onLogout }) {
       if (isFiltered) return language === 'en' ? 'Try adjusting your search query or status filter.' : 'कृपया अपना खोज शब्द या स्थिति फ़िल्टर बदलने का प्रयास करें।';
       if (tab === 'Retail Orders') return language === 'en' ? 'Newly placed orders will appear here automatically. Only the latest 20 items are displayed.' : 'नए ऑर्डर यहां स्वचालित रूप से दिखाई देंगे। केवल नवीनतम 20 आइटम प्रदर्शित किए जाते हैं।';
       if (tab === 'Consultations') return language === 'en' ? 'Newly booked appointments will appear here automatically. Only the latest 20 items are displayed.' : 'नए बुक किए गए अपॉइंटमेंट यहां स्वचालित रूप से दिखाई देंगे। केवल नवीनतम 20 आइटम प्रदर्शित किए जाते हैं।';
-      return language === 'en' ? 'Newly placed inquiries will appear here automatically. Only the latest 20 items are displayed.' : 'नई पूछताछ यहां स्वचालित रूप से दिखाई देगी। केवल नवीनतम 20 आइटम प्रदर्शित किए जाते हैं।';
+      return language === 'en' ? 'Newly placed inquiries will appear here automatically. Only the latest 20 items are displayed.' : 'नई पूछताछ यहां स्वचालित रूप से देगी। केवल नवीनतम 20 आइटम प्रदर्शित किए जाते हैं।';
     };
 
     return (
@@ -713,7 +880,7 @@ export default function AdminDashboard({ onLogout }) {
     <div className="min-h-screen bg-[#060B19] text-white font-sans selection:bg-[#0F766E]/30 relative z-0">
       {/* Navbar */}
       <header className="sticky top-0 z-50 bg-[#0A1020] border-b border-[#1E293B] shadow-lg">
-        <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 min-h-16 py-3 md:py-0 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#0F766E] flex items-center justify-center text-white shadow-[0_0_15px_rgba(15,118,110,0.5)]">
               <Lock className="w-5 h-5" />
@@ -728,8 +895,8 @@ export default function AdminDashboard({ onLogout }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 bg-[#111827] border border-[#1E293B] rounded-full p-1 px-3">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 w-full md:w-auto">
+            <div className="hidden sm:flex items-center gap-2 bg-[#111827] border border-[#1E293B] rounded-full p-1 px-3">
               <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400"><Package className="w-3.5 h-3.5 text-amber-500"/> {language === 'en' ? 'Orders' : 'ऑर्डर'} <span className="bg-[#1E293B] text-white px-2 py-0.5 rounded-full text-[10px]">{retailOrders.length}</span></span>
               <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 ml-2"><Stethoscope className="w-3.5 h-3.5 text-blue-400"/> {language === 'en' ? 'Consultations' : 'परामर्श'} <span className="bg-[#1E293B] text-white px-2 py-0.5 rounded-full text-[10px]">{consultations.length}</span></span>
               <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 ml-2"><Briefcase className="w-3.5 h-3.5 text-purple-400"/> {language === 'en' ? 'B2B Inquiries' : 'थोक पूछताछ'} <span className="bg-[#1E293B] text-white px-2 py-0.5 rounded-full text-[10px]">{wholesaleQueries.length}</span></span>
@@ -738,14 +905,14 @@ export default function AdminDashboard({ onLogout }) {
             <button 
               onClick={fetchPortalData}
               disabled={syncStatus === 'syncing'}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#0F766E] text-[#2DD4BF] text-[10px] font-bold uppercase tracking-wider hover:bg-[#0F766E]/10 transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-2 px-4 py-1.5 rounded-full border border-[#0F766E] text-[#2DD4BF] text-[10px] font-bold uppercase tracking-wider hover:bg-[#0F766E]/10 transition-colors disabled:opacity-50 min-w-[100px]"
             >
               <RefreshCw className={`w-3 h-3 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
               {syncStatus === 'mock' ? (language === 'en' ? 'Mock Sync' : 'मॉक सिंक') : t('portal.refreshBtn')}
             </button>
             <button 
               onClick={onLogout}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#31112C] border border-[#701A4B] text-[#F43F5E] text-[10px] font-bold uppercase tracking-wider hover:bg-[#4C1236] transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-[#31112C] border border-[#701A4B] text-[#F43F5E] text-[10px] font-bold uppercase tracking-wider hover:bg-[#4C1236] transition-colors cursor-pointer min-w-[100px]"
             >
               <Lock className="w-3 h-3" />
               {language === 'en' ? 'Lock Portal' : 'पोर्टल लॉक करें'}
@@ -753,22 +920,22 @@ export default function AdminDashboard({ onLogout }) {
             <button 
               onClick={() => { window.location.href = '/' }}
               className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-wider transition-colors ml-2 select-none cursor-pointer">
-              {language === 'en' ? 'Exit Portal' : 'बाहर निकलें'}
+              {language === 'en' ? 'Exit' : 'बाहर'}
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto px-6 py-12 relative">
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 sm:py-12 relative">
         {/* Background Watermark Logo */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none select-none z-0 mix-blend-screen">
-          <img src="/logo.png" alt="Watermark" className="w-[600px] h-[600px] object-contain grayscale" />
+          <img src="/logo.png" alt="Watermark" className="w-[300px] h-[300px] sm:w-[600px] sm:h-[600px] object-contain grayscale" />
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 relative z-10">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10 relative z-10">
           <div>
-            <h1 className="text-3xl font-black text-white tracking-tight uppercase mb-2">{language === 'en' ? 'Systems Dashboard' : 'सिस्टम डैशबोर्ड'}</h1>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase mb-2">{language === 'en' ? 'Systems Dashboard' : 'सिस्टम डैशबोर्ड'}</h1>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex flex-wrap items-center gap-2">
               {language === 'en' ? 'Manage operational status, client orders, and wholesale inquiries.' : 'परिचालन स्थिति, ग्राहक ऑर्डर और थोक पूछताछ का प्रबंधन करें।'}
               {syncStatus === 'mock' && (
                 <span className="text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded flex items-center gap-1 border border-amber-500/20"><AlertCircle className="w-3 h-3"/> {language === 'en' ? 'Local Mock Mode' : 'स्थानीय मॉक मोड'}</span>
@@ -777,23 +944,23 @@ export default function AdminDashboard({ onLogout }) {
           </div>
 
           {/* Clinic Override */}
-          <div className="bg-[#111827] border border-[#1E293B] rounded-xl p-3 flex items-center gap-6 shadow-xl">
+          <div className="bg-[#111827] border border-[#1E293B] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 shadow-xl w-full lg:w-auto">
             <div>
               <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <Clock className="w-3 h-3" /> {t('portal.clinicStatusOverride')}
               </span>
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-600 mt-0.5">
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-650 mt-0.5">
                 {language === 'en' ? 'Force Portal Open Status' : 'पोर्टल खुली स्थिति बाध्य करें'}
               </span>
             </div>
-            <div className="flex items-center gap-2 bg-[#0B1120] p-1 rounded-lg border border-[#1E293B]">
-              <button onClick={() => handleOverrideStatusChange('auto')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'auto' ? 'bg-[#0F766E] text-white shadow-[0_0_10px_rgba(15,118,110,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
+            <div className="flex flex-wrap items-center gap-2 bg-[#0B1120] p-1 rounded-lg border border-[#1E293B] w-full sm:w-auto">
+              <button onClick={() => handleOverrideStatusChange('auto')} className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${overrideStatus === 'auto' ? 'bg-[#0F766E] text-white shadow-[0_0_10px_rgba(15,118,110,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
                 <RefreshCw className="w-3 h-3 text-[#2DD4BF]" /> {language === 'en' ? 'Auto' : 'ऑटो'}
               </button>
-              <button onClick={() => handleOverrideStatusChange('open')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'open' ? 'bg-[#166534] text-white shadow-[0_0_10px_rgba(22,101,52,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
+              <button onClick={() => handleOverrideStatusChange('open')} className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${overrideStatus === 'open' ? 'bg-[#166534] text-white shadow-[0_0_10px_rgba(22,101,52,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
                 <CheckCircle className="w-3 h-3 text-emerald-500" /> {t('portal.forceOpen')}
               </button>
-              <button onClick={() => handleOverrideStatusChange('closed')} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${overrideStatus === 'closed' ? 'bg-[#7F1D1D] text-white shadow-[0_0_10px_rgba(127,29,29,0.4)]' : 'text-slate-500 hover:text-slate-350'}`}>
+              <button onClick={() => handleOverrideStatusChange('closed')} className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${overrideStatus === 'closed' ? 'bg-[#7F1D1D] text-white shadow-[0_0_10px_rgba(127,29,29,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
                 <XCircle className="w-3 h-3 text-rose-500" /> {t('portal.forceClosed')}
               </button>
             </div>
@@ -801,23 +968,23 @@ export default function AdminDashboard({ onLogout }) {
         </div>
 
         {/* Tabs */}
-        <div className="flex justify-center mb-8 relative z-10">
-          <div className="flex items-center bg-[#111827] border border-[#1E293B] rounded-xl p-1.5 shadow-lg">
+        <div className="flex justify-start sm:justify-center mb-8 relative z-10 overflow-x-auto pb-2 scrollbar-none">
+          <div className="flex items-center bg-[#111827] border border-[#1E293B] rounded-xl p-1.5 shadow-lg whitespace-nowrap min-w-max">
             <button 
               onClick={() => setActiveTab('retail')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'retail' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'retail' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
               <Package className={`w-4 h-4 ${activeTab === 'retail' ? 'text-white' : 'text-amber-500'}`} />
               {language === 'en' ? 'Retail Orders' : 'खुदरा ऑर्डर'} ({retailOrders.length})
             </button>
             <button 
               onClick={() => setActiveTab('consultations')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'consultations' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'consultations' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
               <Stethoscope className={`w-4 h-4 ${activeTab === 'consultations' ? 'text-white' : 'text-blue-400'}`} />
               {language === 'en' ? 'Consultations' : 'परामर्श'} ({consultations.length})
             </button>
             <button 
               onClick={() => setActiveTab('wholesale')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'wholesale' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'wholesale' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
               <Briefcase className={`w-4 h-4 ${activeTab === 'wholesale' ? 'text-white' : 'text-purple-400'}`} />
               {language === 'en' ? 'Wholesale Queries' : 'थोक पूछताछ'} ({wholesaleQueries.length})
             </button>
@@ -825,8 +992,8 @@ export default function AdminDashboard({ onLogout }) {
         </div>
 
         {/* Controls */}
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-6 relative z-10">
-          <div className="relative w-full max-w-lg">
+        <div className="flex flex-col md:flex-row justify-center items-stretch md:items-center gap-4 mb-6 relative z-10 w-full">
+          <div className="relative w-full md:max-w-lg">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input 
               type="text" 
@@ -839,15 +1006,15 @@ export default function AdminDashboard({ onLogout }) {
                   ? (language === 'en' ? "Search appointments by patient name or phone..." : "मरीज के नाम या फोन से अपॉइंटमेंट खोजें...")
                   : (language === 'en' ? "Search wholesale queries by name, company, or remedies..." : "नाम, कंपनी या दवाओं से थोक पूछताछ खोजें...")
               }
-              className="w-full bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-slate-550 focus:outline-none focus:border-[#0F766E] transition-colors shadow-lg"
+              className="w-full bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#0F766E] transition-colors shadow-lg"
             />
           </div>
           {activeTab !== 'wholesale' && (
-            <div className="relative">
+            <div className="relative w-full md:w-auto">
               <select 
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-4 pr-10 text-sm text-white font-semibold focus:outline-none focus:border-[#0F766E] transition-colors cursor-pointer outline-none shadow-lg"
+                className="appearance-none w-full bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-4 pr-10 text-sm text-white font-semibold focus:outline-none focus:border-[#0F766E] transition-colors cursor-pointer outline-none shadow-lg"
               >
                 <option value="ALL">{language === 'en' ? 'Show All Statuses' : 'सभी स्थितियां दिखाएं'}</option>
                 <option value="Pending">{language === 'en' ? 'Pending' : 'लंबित'}</option>
@@ -868,7 +1035,7 @@ export default function AdminDashboard({ onLogout }) {
           )}
           <button 
             onClick={handleExportCSV}
-            className="flex items-center gap-2 bg-[#111827] border border-[#1E293B] hover:border-slate-500 rounded-xl py-3 px-6 text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-all shadow-lg select-none cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-[#111827] border border-[#1E293B] hover:border-slate-500 rounded-xl py-3 px-6 text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-all shadow-lg select-none cursor-pointer w-full md:w-auto"
           >
             <Download className="w-4 h-4 text-blue-400" />
             {language === 'en' ? 'Export CSV' : 'सीएसवी निर्यात करें'}
@@ -880,7 +1047,7 @@ export default function AdminDashboard({ onLogout }) {
           {renderActiveTable()}
           {lastSync && !isLoading && (
             <div className="bg-[#0A1020] border-t border-[#1E293B] p-2 px-4 flex justify-end">
-              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
+              <span className="text-[9px] text-slate-550 font-bold uppercase tracking-widest">
                 {t('portal.lastUpdated', { time: lastSync })}
               </span>
             </div>

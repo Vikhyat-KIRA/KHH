@@ -128,7 +128,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         status: 'mock_success',
         message: 'WhatsApp credentials not set yet. Message was NOT actually sent.',
-        recipient: patient_phone
+        recipient: recipientPhone
       });
     }
 
