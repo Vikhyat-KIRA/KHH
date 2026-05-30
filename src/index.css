@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* === WARM LIGHT THEME PALETTE === */
+  /* Background layers — cream/ivory scale */
+  --color-corp-slate-950: #FDFBF7; /* Primary page background — warm cream */
+  --color-corp-slate-900: #F9F6F0; /* Alternate section background — off-white */
+  --color-corp-slate-800: #FFFFFF; /* Card/container background — pure white */
+  --color-corp-slate-700: #EAE5DC; /* Border color — warm cream border */
+  --color-corp-slate-600: #D6CFC4; /* Subtle dividers */
+
+  /* Accent — premium deep forest green & teal */
+  --color-corp-accent-neon: #115E59;     /* Primary CTA — deep teal */
+  --color-corp-accent-emerald-dark: #0D4F4A; /* Hover state for primary */
+  --color-corp-accent-cyan: #0F766E;     /* Secondary accent — forest teal */
+  --color-corp-accent-cyan-dark: #134E4A; /* Deep variant */
+
+  /* Text */
+  --color-corp-silver: #1E293B;    /* Primary text — deep slate */
+  --color-corp-gray-muted: #64748B; /* Secondary/muted text — warm slate */
+
+  /* Shadows — warm, soft */
+  --shadow-neon-emerald: 0 4px 14px rgba(17, 94, 89, 0.18);
+  --shadow-neon-cyan: 0 4px 14px rgba(15, 118, 110, 0.18);
+  --shadow-glass: 0 4px 24px 0 rgba(26, 36, 33, 0.08);
+
+  /* Animation */
+  --animate-neon-pulse: neon-glow-pulse 2s infinite alternate;
+}
+
+@keyframes neon-glow-pulse {
+  0% {
+    box-shadow: 0 0 8px rgba(17, 94, 89, 0.15);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(15, 118, 110, 0.3);
+  }
+}
+
+/* Base element defaults */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: #FDFBF7;
+    color: #1E293B;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Scrollbar — light variant */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F9F6F0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D6CFC4;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #115E59;
+}
+
+/* ===== UTILITY CLASSES — Light Theme Versions ===== */
+
+/* Gradient bar accent — forest green to teal */
+.bg-gradient-neon {
+  background: linear-gradient(135deg, #115E59 0%, #0F766E 100%);
+}
+
+/* Gradient text */
+.text-gradient-neon {
+  background: linear-gradient(135deg, #115E59 0%, #0F766E 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.border-gradient-neon {
+  border-image: linear-gradient(to right, #115E59, #0F766E) 1;
+}
+
+/* Main card glassmorphism — crisp white card with warm shadow */
+.glassmorphism {
+  background: #FFFFFF;
+  border: 1px solid #EAE5DC;
+  box-shadow: 0 4px 24px 0 rgba(26, 36, 33, 0.07);
+}
+
+/* Light glassmorphism — same treatment (used in BookingCalendar) */
+.glassmorphism-light {
+  background: #FFFFFF;
+  border: 1px solid #EAE5DC;
+  box-shadow: 0 8px 32px -4px rgba(26, 36, 33, 0.1);
+}
+
+/* Primary CTA button — deep forest green, white text */
+.btn-neon-emerald {
+  background: #115E59;
+  color: #FFFFFF;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(17, 94, 89, 0.25);
+}
+
+.btn-neon-emerald:hover {
+  transform: translateY(-2px);
+  background: #0D4F4A;
+  box-shadow: 0 6px 20px rgba(17, 94, 89, 0.35);
+}
+
+/* Secondary outline button — forest green border & text */
+.btn-neon-cyan-outline {
+  border: 2px solid #115E59;
+  color: #115E59;
+  font-weight: 700;
+  background: transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-neon-cyan-outline:hover {
+  transform: translateY(-2px);
+  background: rgba(17, 94, 89, 0.06);
+  box-shadow: 0 4px 14px rgba(17, 94, 89, 0.15);
+}
+
+/* Animate fade-in for drawers/alerts */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out both;
+}
