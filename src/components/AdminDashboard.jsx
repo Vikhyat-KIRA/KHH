@@ -1318,7 +1318,9 @@ export default function AdminDashboard({ onLogout }) {
               )}
             </p>
           </div>
-<div className="bg-[#111827] border border-[#1E293B] rounded-xl p-4 flex items-center justify-between gap-4 shadow-xl w-full">
+
+          <div className="flex flex-col gap-3 w-full lg:w-auto">
+            <div className="bg-[#111827] border border-[#1E293B] rounded-xl p-4 flex items-center justify-between gap-4 shadow-xl w-full">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
                   <MessageCircle className="w-5 h-5 text-emerald-500" />
