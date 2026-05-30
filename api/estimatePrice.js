@@ -62,39 +62,105 @@ export default async function handler(req, res) {
       return 50;
     };
 
-    // Step 1: Attempt to match items locally from customPrices database first
+    // Step 1a: AI Fuzzy Name Resolution
+    // Resolves shorthand/misspelled names ("nux vom", "arn", "bell") to canonical names ("Nux Vomica", "Arnica Montana", "Belladonna")
+    // Only runs if we have structured items and an API key
+    let resolvedItems = hasItems ? [...items] : [];
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (hasItems && apiKey && apiKey !== 'YOUR_GEMINI_API_KEY') {
+      try {
+        const namesToResolve = items.map(itm => itm.name).filter(Boolean);
+        const resolvePrompt = `You are an expert homeopathic pharmacist. Given these medicine name inputs (which may be abbreviated, misspelled, or in shorthand), return the canonical/full homeopathic medicine name for each.
+
+Inputs: ${JSON.stringify(namesToResolve)}
+
+Rules:
+- "nux vom" → "Nux Vomica"
+- "arn" or "arnica" → "Arnica Montana"
+- "bell" → "Belladonna"
+- "rhus tox" → "Rhus Toxicodendron"
+- "calc carb" → "Calcarea Carbonica"
+- If already a full correct name, return it unchanged.
+- If completely unrecognizable, return it unchanged.
+
+Return ONLY a JSON array of resolved names in the same order as the input. No extra text.
+Example: ["Nux Vomica", "Arnica Montana", "Belladonna"]`;
+
+        const resolveRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: resolvePrompt }] }],
+              generationConfig: { responseMimeType: 'application/json' }
+            })
+          }
+        );
+
+        if (resolveRes.ok) {
+          const resolveData = await resolveRes.json();
+          const resolvedText = resolveData?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (resolvedText) {
+            const resolvedNames = JSON.parse(resolvedText.trim());
+            if (Array.isArray(resolvedNames) && resolvedNames.length === items.length) {
+              resolvedItems = items.map((itm, idx) => ({
+                ...itm,
+                originalName: itm.name,
+                name: resolvedNames[idx] || itm.name
+              }));
+              console.log('🤖 AI resolved names:', resolvedNames);
+            }
+          }
+        }
+      } catch (resolveErr) {
+        console.warn('⚠️ Name resolution failed, using original names:', resolveErr.message);
+      }
+    }
+
+    // Step 1b: Match resolved names against local customPrices database
     const matchedItems = [];
     const unmatchedItems = [];
 
     if (hasItems && Array.isArray(customPrices)) {
-      items.forEach((item) => {
+      resolvedItems.forEach((item) => {
         const itemClean = item.name.toLowerCase().trim();
-        
-        // Find best match in customPrices
+        const originalClean = (item.originalName || item.name).toLowerCase().trim();
+
+        // Find best match in customPrices — try resolved name first, then original
         const match = customPrices.find((cp) => {
           const cpClean = cp.name.toLowerCase().trim();
-          // Name match if either contains the other
-          const nameMatch = itemClean.includes(cpClean) || cpClean.includes(itemClean);
+          // Try resolved canonical name
+          const nameMatchResolved = itemClean.includes(cpClean) || cpClean.includes(itemClean);
+          // Try original input as fallback
+          const nameMatchOriginal = originalClean.includes(cpClean) || cpClean.includes(originalClean);
           // Size match (case-insensitive)
-          const sizeMatch = item.bottleSize && cp.size && 
+          const sizeMatch = item.bottleSize && cp.size &&
             item.bottleSize.toLowerCase().trim() === cp.size.toLowerCase().trim();
-          return nameMatch && sizeMatch;
+          // Potency match (optional — only filter if both have potency set)
+          const potencyMatch = !cp.potency || cp.potency === 'custom' ||
+            !item.potency || item.potency === 'custom' ||
+            item.potency.toLowerCase().trim() === cp.potency.toLowerCase().trim();
+
+          return (nameMatchResolved || nameMatchOriginal) && sizeMatch && potencyMatch;
         });
 
         if (match) {
           const unitPrice = parseFloat(match.price) || 100;
           matchedItems.push({
-            name: `${item.name} (${item.bottleSize || '30ml'})`,
+            name: `${item.name} ${item.potency || ''} (${item.bottleSize || '30ml'})`.trim(),
             quantity: item.quantity || 1,
             estimatedUnitPrice: unitPrice,
-            totalPrice: unitPrice * (item.quantity || 1)
+            totalPrice: unitPrice * (item.quantity || 1),
+            source: 'local_db'
           });
         } else {
           unmatchedItems.push(item);
         }
       });
     } else if (hasItems) {
-      unmatchedItems.push(...items);
+      unmatchedItems.push(...resolvedItems);
     }
 
     // Step 2: If everything is matched locally, return immediately!
@@ -118,7 +184,7 @@ export default async function handler(req, res) {
 
     // Otherwise, we have unmatched items. We fetch unmatched ones via Gemini AI,
     // and combine them with our matched ones!
-    const apiKey = process.env.GEMINI_API_KEY;
+    // (apiKey already declared above)
 
     if (apiKey && apiKey !== 'YOUR_GEMINI_API_KEY') {
       console.log(`🔮 Estimating ${unmatchedItems.length} unmatched prices using Gemini AI...`);

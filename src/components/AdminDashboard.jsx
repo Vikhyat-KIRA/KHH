@@ -111,15 +111,14 @@ export default function AdminDashboard({ onLogout }) {
       // Load prices from local storage if firestore didn't return them
       if (rPrices.length === 0) {
         rPrices = JSON.parse(localStorage.getItem('medicine_prices') || '[]');
+        // Remove any old mock-seeded entries that were added automatically
+        rPrices = rPrices.filter(p =>
+          !['1','2','3','4'].includes(p.id) ||
+          (p.name && !['Arnica Montana','Nux Vomica','Belladonna','Rhus Tox'].includes(p.name))
+        );
         if (rPrices.length === 0) {
-          // Seed defaults
-          rPrices = [
-            { id: '1', name: 'Arnica Montana', size: '30ml', price: '100' },
-            { id: '2', name: 'Nux Vomica', size: '30ml', price: '105' },
-            { id: '3', name: 'Belladonna', size: '30ml', price: '95' },
-            { id: '4', name: 'Rhus Tox', size: '30ml', price: '100' }
-          ];
-          localStorage.setItem('medicine_prices', JSON.stringify(rPrices));
+          // Start with empty DB — admin adds real prices manually
+          localStorage.setItem('medicine_prices', '[]');
         }
       }
       setMedicinePrices(rPrices);
