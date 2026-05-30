@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Calendar, Clock, User, Phone, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2, Lock, Package } from 'lucide-react';
+import { Search, Calendar, Clock, User, Phone, AlertCircle, Loader2, ArrowLeft, XCircle, Trash2, Lock, Package, Copy, CalendarPlus } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
@@ -630,6 +631,62 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
     }
   };
 
+  const handleCopyDetails = (booking) => {
+    const details = `Appointment at Kanchan Homoeo Hall\nPatient: ${booking.patient_name}\nDate: ${new Date(booking.appointment_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\nTime: ${booking.time_slot}`;
+    navigator.clipboard.writeText(details);
+    toast.success(language === 'en' ? 'Appointment details copied!' : 'अपॉइंटमेंट विवरण कॉपी किया गया!');
+  };
+
+  const handleAddToCalendar = (booking) => {
+    const dateStr = booking.appointment_date;
+    const timeSlot = booking.time_slot;
+    
+    const startTimeMatch = timeSlot.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    let startHour = 10;
+    let startMin = 0;
+    if (startTimeMatch) {
+      let h = parseInt(startTimeMatch[1], 10);
+      const m = parseInt(startTimeMatch[2], 10);
+      const ampm = startTimeMatch[3].toUpperCase();
+      if (ampm === 'PM' && h < 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+      startHour = h;
+      startMin = m;
+    }
+
+    const startDate = new Date(dateStr);
+    startDate.setHours(startHour, startMin, 0);
+    const endDate = new Date(startDate.getTime() + 30 * 60000);
+
+    const formatICSDate = (date) => {
+      return date.toISOString().replace(/-|:|\.\d+/g, '').slice(0, 15) + 'Z';
+    };
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Kanchan Homoeo Hall//EN',
+      'BEGIN:VEVENT',
+      `DTSTART:${formatICSDate(startDate)}`,
+      `DTEND:${formatICSDate(endDate)}`,
+      `SUMMARY:Clinic Appointment - ${booking.patient_name}`,
+      `DESCRIPTION:Appointment at Kanchan Homoeo Hall. Keep your slip token handy.`,
+      `LOCATION:Kanchan Homoeo Hall, near Mahabir Chowk, Ranchi`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Appointment_${booking.patient_name.replace(/\s+/g, '_')}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(language === 'en' ? 'Downloaded Calendar Invite' : 'कैलेंडर आमंत्रण डाउनलोड किया गया');
+  };
+
   const renderBookingCard = (booking) => {
     const isCancelled = booking.cancelled === true || booking.status === 'CANCELLED' || booking.status === 'Cancelled';
     const isCancelling = cancellingId === booking.id;
@@ -770,15 +827,35 @@ export default function MyBookings({ onBackToHome, initialAdminMode = false, onl
                 </div>
               </div>
             ) : (
-              // Cancel trigger button
-              <button
-                type="button"
-                onClick={() => { setConfirmId(bookingId); setCancelError(''); }}
-                className="w-full py-2 px-3 border border-rose-200 hover:border-rose-400 hover:bg-rose-50 text-rose-500 hover:text-rose-700 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <XCircle className="w-3.5 h-3.5" />
-                {language === 'en' ? 'Cancel Appointment' : 'अपॉइंटमेंट रद्द करें'}
-              </button>
+              // Cancel & Actions
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleCopyDetails(booking)}
+                    className="flex-1 py-2 px-3 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    {language === 'en' ? 'Copy Token' : 'कॉपी करें'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddToCalendar(booking)}
+                    className="flex-1 py-2 px-3 border border-[#EAE5DC] hover:border-teal-300 hover:bg-teal-50 text-teal-700 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <CalendarPlus className="w-3.5 h-3.5" />
+                    {language === 'en' ? 'Calendar' : 'कैलेंडर'}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setConfirmId(bookingId); setCancelError(''); }}
+                  className="w-full py-2 px-3 border border-rose-200 hover:border-rose-400 hover:bg-rose-50 text-rose-500 hover:text-rose-700 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  {language === 'en' ? 'Cancel Appointment' : 'अपॉइंटमेंट रद्द करें'}
+                </button>
+              </div>
             )}
           </div>
         )}

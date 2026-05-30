@@ -13,14 +13,44 @@ import {
   Briefcase,
   Menu,
   X,
-  ShoppingBag
+  ShoppingBag,
+  MessageCircle
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import BookingCalendar from './components/BookingCalendar';
 import BulkForm from './components/BulkForm';
 import MyBookings from './components/MyBookings';
 import RetailForm from './components/RetailForm';
 import { useLanguage } from './context/LanguageContext';
+
+const FAQItem = ({ question, answer }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="border border-[#EAE5DC] rounded-xl mb-3 overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-5 py-4 text-left flex justify-between items-center bg-white hover:bg-slate-50 transition-colors cursor-pointer border-0"
+      >
+        <span className="font-bold text-slate-800 text-sm">{question}</span>
+        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} className="text-emerald-600">
+          <X className={`w-4 h-4 transform ${isOpen ? 'rotate-0' : 'rotate-45'}`} />
+        </motion.div>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-5 text-xs text-slate-600 leading-relaxed bg-white"
+          >
+            <div className="pb-4 pt-2 border-t border-slate-100">{answer}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 
 export default function App() {
@@ -365,14 +395,36 @@ export default function App() {
             </button>
             <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-[#5A6561] hover:text-[#115E59] transition-colors">{t('nav.location')}</a>
             
-            {/* Sleek inline language switcher */}
-            <button
-              onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#EAE5DC] hover:border-[#115E59] text-xs font-bold text-[#115E59] bg-[#F9F6F0]/50 hover:bg-[#115E59]/5 transition-all cursor-pointer shadow-sm select-none"
-              title="Switch Language / भाषा बदलें"
-            >
-              🌐 {language === 'en' ? 'हिन्दी' : 'English'}
-            </button>
+            {/* Premium hover-based language switcher dropdown */}
+            <div className="relative group/lang select-none z-50">
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#EAE5DC] hover:border-[#115E59] text-xs font-bold text-[#115E59] bg-[#F9F6F0]/50 hover:bg-[#115E59]/5 transition-all cursor-pointer shadow-sm"
+                title="Select Language / भाषा चुनें"
+              >
+                🌐 {language === 'en' ? 'English' : 'हिन्दी'} <span className="text-[9px] text-slate-400 group-hover/lang:rotate-180 transition-transform duration-300">▼</span>
+              </button>
+              
+              <div className="absolute right-0 mt-1 w-28 bg-white border border-[#EAE5DC] rounded-xl shadow-lg opacity-0 invisible group-hover/lang:opacity-100 group-hover/lang:visible transition-all duration-250 z-50 py-1.5 flex flex-col gap-0.5">
+                <button
+                  onClick={() => setLanguage('en')}
+                  className={`w-full text-left px-3 py-1.5 text-xs font-extrabold hover:bg-[#115E59]/5 cursor-pointer flex items-center justify-between ${
+                    language === 'en' ? 'text-[#115E59] bg-[#115E59]/5' : 'text-slate-700'
+                  }`}
+                >
+                  <span>English</span>
+                  {language === 'en' && <span className="text-[10px] text-[#115E59]">✓</span>}
+                </button>
+                <button
+                  onClick={() => setLanguage('hi')}
+                  className={`w-full text-left px-3 py-1.5 text-xs font-extrabold hover:bg-[#115E59]/5 cursor-pointer flex items-center justify-between ${
+                    language === 'hi' ? 'text-[#115E59] bg-[#115E59]/5' : 'text-slate-700'
+                  }`}
+                >
+                  <span>हिन्दी</span>
+                  {language === 'hi' && <span className="text-[10px] text-[#115E59]">✓</span>}
+                </button>
+              </div>
+            </div>
           </nav>
 
           {/* Quick CTA */}
@@ -462,12 +514,28 @@ export default function App() {
               </div>
               <div className="flex items-center justify-between border-t border-slate-100 pt-3">
                 <span className="text-xs text-[#5A6561] font-bold tracking-wider uppercase">Language / भाषा:</span>
-                <button
-                  onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#EAE5DC] text-xs font-bold text-[#115E59] bg-[#F9F6F0]/50 hover:bg-[#115E59]/5 transition-all cursor-pointer shadow-sm"
-                >
-                  🌐 {language === 'en' ? 'हिन्दी' : 'English'}
-                </button>
+                <div className="flex rounded-lg border border-[#EAE5DC] p-0.5 bg-[#F9F6F0]/50 shadow-sm select-none">
+                  <button
+                    onClick={() => setLanguage('en')}
+                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                      language === 'en'
+                        ? 'bg-[#115E59] text-white shadow-sm'
+                        : 'text-[#5A6561] hover:text-[#115E59]'
+                    }`}
+                  >
+                    EN
+                  </button>
+                  <button
+                    onClick={() => setLanguage('hi')}
+                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                      language === 'hi'
+                        ? 'bg-[#115E59] text-white shadow-sm'
+                        : 'text-[#5A6561] hover:text-[#115E59]'
+                    }`}
+                  >
+                    HI
+                  </button>
+                </div>
               </div>
               <a 
                 href="tel:9431360455"
@@ -747,9 +815,13 @@ export default function App() {
                 
                 {/* Elegant Handwritten Style Signature */}
                 <div className="shrink-0 flex flex-col items-end">
-                  <span className="font-serif italic text-xl font-bold text-[#115E59] tracking-wide select-none">
-                    {t('meetOwner.signature')}
-                  </span>
+                  {language === 'en' ? (
+                    <img src="/signature.png" alt="Signature" className="h-16 object-contain -mt-2 opacity-80" style={{ filter: 'brightness(0) saturate(100%) invert(29%) sepia(45%) saturate(718%) hue-rotate(125deg) brightness(97%) contrast(96%)' }} />
+                  ) : (
+                    <span className="font-serif italic text-xl font-bold text-[#115E59] tracking-wide select-none">
+                      {t('meetOwner.signature')}
+                    </span>
+                  )}
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t('meetOwner.title')}</span>
                 </div>
               </div>
@@ -984,7 +1056,23 @@ export default function App() {
         </div>
       </motion.section>
 
-      {/* 6. CONTACT & LOCATION HUB */}
+      {/* ELEGANT SECTION DIVIDER 3 */}
+      <div className="relative w-full overflow-hidden bg-[#F9F6F0]/90 border-y border-[#EAE5DC] py-6 z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(17,94,89,0.04)_0%,rgba(15,118,110,0.04)_100%)] pointer-events-none"></div>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#0F766E]"></div>
+            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#0F766E]">{t('dividers.shift')}</span>
+          </div>
+          <div className="h-[1px] flex-1 bg-gradient-to-r from-[#0F766E]/30 via-[#EAE5DC] to-[#115E59]/30 mx-4 hidden md:block"></div>
+          <div className="flex items-center gap-3">
+            <span className="text-2xs font-extrabold uppercase tracking-widest text-[#115E59]">CONTACT HUB</span>
+            <div className="w-2.5 h-2.5 rounded-full bg-[#115E59]"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 7. CONTACT & LOCATION HUB */}
       <motion.section 
         id="contact" 
         className="py-24 bg-[#FDFBF7]/90 border-t border-[#EAE5DC] relative z-10"
@@ -1099,8 +1187,78 @@ export default function App() {
           </div>
         </div>
       </motion.section>
+
         </>
       )}
+
+      {/* 8. FREQUENTLY ASKED QUESTIONS (GLOBAL) */}
+      <motion.section 
+        id="faq" 
+        className="py-24 bg-white/90 relative z-10 border-t border-[#EAE5DC]"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8 }}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(17,94,89,0.02),transparent)] pointer-events-none"></div>
+        <div className="max-w-4xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-12 space-y-4">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#1E293B] tracking-tight">
+              {language === 'en' ? 'Frequently Asked Questions' : 'अक्सर पूछे जाने वाले प्रश्न'}
+            </h2>
+            <p className="text-sm md:text-base text-[#64748B] leading-relaxed">
+              {language === 'en' ? 'Everything you need to know about our remedies, consultation, and delivery.' : 'हमारी दवाओं, परामर्श और डिलीवरी के बारे में वह सब कुछ जो आपको जानना चाहिए।'}
+            </p>
+          </div>
+          
+          <div className="space-y-1">
+            <FAQItem 
+              question={language === 'en' ? 'What are the clinic timings?' : 'क्लिनिक का समय क्या है?'} 
+              answer={language === 'en' ? 'Our clinic is open from Monday to Saturday, 10:30 AM to 8:00 PM. We are closed on Sundays.' : 'हमारा क्लिनिक सोमवार से शनिवार सुबह 10:30 बजे से रात 8:00 बजे तक खुला रहता है। रविवार को क्लिनिक बंद रहता है।'} 
+            />
+            <FAQItem 
+              question={language === 'en' ? 'Do you deliver homeopathic remedies?' : 'क्या आप होम्योपैथिक दवाएं वितरित करते हैं?'} 
+              answer={language === 'en' ? 'Yes, we provide home delivery within Ranchi. Delivery is free for orders within a 5km radius and for orders above ₹500.' : 'हाँ, हम रांची के भीतर होम डिलीवरी प्रदान करते हैं। 5 किमी के दायरे में और ₹500 से अधिक के ऑर्डर के लिए डिलीवरी मुफ्त है।'} 
+            />
+            <FAQItem 
+              question={language === 'en' ? 'How can I book an appointment with the doctor?' : 'मैं डॉक्टर के साथ अपॉइंटमेंट कैसे बुक कर सकता हूं?'} 
+              answer={language === 'en' ? 'You can easily book a slot using the Appointment Scheduler on our homepage. You will get a token pass that you can present at the clinic.' : 'आप हमारे होमपेज पर अपॉइंटमेंट शेड्यूलर का उपयोग करके आसानी से स्लॉट बुक कर सकते हैं। आपको एक टोकन पास मिलेगा जिसे आप क्लिनिक में दिखा सकते हैं।'} 
+            />
+            <FAQItem 
+              question={language === 'en' ? 'Do you accept bulk orders for clinics?' : 'क्या आप क्लीनिक के लिए थोक आदेश स्वीकार करते हैं?'} 
+              answer={language === 'en' ? 'Yes! We have a dedicated B2B Wholesale Portal where practitioners and pharmacies can submit bulk queries for special discounted pricing.' : 'हाँ! हमारे पास एक समर्पित B2B थोक पोर्टल है जहां चिकित्सक और फार्मेसियां विशेष रियायती मूल्य निर्धारण के लिए थोक पूछताछ प्रस्तुत कर सकते हैं।'} 
+            />
+            <FAQItem 
+              question={language === 'en' ? 'Are homeopathic medicines safe for children and pregnant women?' : 'क्या होम्योपैथिक दवाएं बच्चों और गर्भवती महिलाओं के लिए सुरक्षित हैं?'} 
+              answer={language === 'en' ? 'Yes, homeopathic remedies are generally safe, gentle, and free from side effects. However, we always recommend consulting our doctor before starting any treatment during pregnancy.' : 'हाँ, होम्योपैथिक उपचार आमतौर पर सुरक्षित, कोमल और दुष्प्रभावों से मुक्त होते हैं। हालांकि, हम हमेशा गर्भावस्था के दौरान कोई भी उपचार शुरू करने से पहले हमारे डॉक्टर से परामर्श करने की सलाह देते हैं।'} 
+            />
+            <FAQItem 
+              question={language === 'en' ? 'What payment methods do you accept?' : 'आप किन भुगतान विधियों को स्वीकार करते हैं?'} 
+              answer={language === 'en' ? 'We accept Cash, UPI (Google Pay, PhonePe, Paytm), and major Credit/Debit cards at the clinic.' : 'हम क्लिनिक में नकद, यूपीआई (Google Pay, PhonePe, Paytm) और प्रमुख क्रेडिट/डेबिट कार्ड स्वीकार करते हैं।'} 
+            />
+            <FAQItem 
+              question={language === 'en' ? 'How long does a consultation usually take?' : 'परामर्श में आमतौर पर कितना समय लगता है?'} 
+              answer={language === 'en' ? 'A first-time consultation usually takes 20-30 minutes as the doctor takes a detailed case history. Follow-up visits are typically 10-15 minutes.' : 'पहली बार के परामर्श में आमतौर पर 20-30 मिनट लगते हैं क्योंकि डॉक्टर विस्तृत केस हिस्ट्री लेते हैं। अनुवर्ती विजिट आमतौर पर 10-15 मिनट की होती हैं।'} 
+            />
+          </div>
+
+          <div className="mt-8 text-center bg-emerald-50 border border-emerald-200 rounded-xl p-6 shadow-sm">
+            <h3 className="text-sm font-extrabold text-[#115E59] mb-2">{language === 'en' ? 'Want to know something else?' : 'कुछ और जानना चाहते हैं?'}</h3>
+            <p className="text-xs text-[#64748B] mb-4">{language === 'en' ? 'If you have more questions, feel free to ask us directly on WhatsApp!' : 'यदि आपके पास अधिक प्रश्न हैं, तो बेझिझक हमसे व्हाट्सएप पर पूछें!'}</p>
+            <a 
+              href="https://wa.me/919431360455?text=Hello%20Kanchan%20Homoeo%20Hall%2C%20I%20have%20a%20question."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#25D366] hover:bg-[#1EBE57] text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md hover:shadow-lg"
+            >
+              <MessageCircle className="w-4 h-4" />
+              {language === 'en' ? 'Ask on WhatsApp' : 'व्हाट्सएप पर पूछें'}
+            </a>
+          </div>
+
+        </div>
+      </motion.section>
+
 
       {/* 7. PREMIUM FOOTER */}
       <footer className="bg-white/90 border-t border-[#EAE5DC] py-12 relative z-10">
@@ -1118,6 +1276,17 @@ export default function App() {
         </div>
       </footer>
 
+      {/* Floating WhatsApp Button */}
+      <a
+        href="https://wa.me/919431360455?text=Hello%20Kanchan%20Homoeo%20Hall%2C%20I%20have%20an%20inquiry."
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-[#25D366] hover:bg-[#1EBE57] text-white rounded-full shadow-xl flex items-center justify-center z-50 transition-transform transform hover:scale-110"
+        style={{ animation: 'bounce 2s infinite' }}
+      >
+        <MessageCircle className="w-7 h-7" />
+      </a>
+      
     </div>
   );
 }

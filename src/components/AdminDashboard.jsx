@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Lock, RefreshCw, Package, Stethoscope, Briefcase, Clock, Search, ChevronDown, Download, CheckCircle, XCircle, AlertCircle, MessageCircle } from 'lucide-react';
+import { Lock, RefreshCw, Package, Stethoscope, Briefcase, Clock, Search, ChevronDown, Download, CheckCircle, XCircle, AlertCircle, MessageCircle, Database, Trash2, Plus, Edit } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useLanguage } from '../context/LanguageContext';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
-import { doc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, collection, getDocs, addDoc, deleteDoc } from 'firebase/firestore';
 
 export default function AdminDashboard({ onLogout }) {
   const { language, t } = useLanguage();
@@ -27,6 +27,14 @@ export default function AdminDashboard({ onLogout }) {
   const [retailOrders, setRetailOrders] = useState([]);
   const [consultations, setConsultations] = useState([]);
   const [wholesaleQueries, setWholesaleQueries] = useState([]);
+  const [medicinePrices, setMedicinePrices] = useState([]);
+  
+  // Pricing inventory state
+  const [newMedName, setNewMedName] = useState('');
+  const [newMedPotency, setNewMedPotency] = useState('30C');
+  const [newMedSize, setNewMedSize] = useState('30ml');
+  const [newMedPrice, setNewMedPrice] = useState('');
+  const [editingMedId, setEditingMedId] = useState(null);
   
   // Search & Filtering State
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,6 +55,8 @@ export default function AdminDashboard({ onLogout }) {
       let rBulk = [];
       let fetchedSuccessfully = false;
 
+      let rPrices = [];
+
       if (isFirebaseConfigured) {
         try {
           const ordersSnapshot = await getDocs(collection(db, 'retail_orders'));
@@ -57,6 +67,9 @@ export default function AdminDashboard({ onLogout }) {
           
           const b2bSnapshot = await getDocs(collection(db, 'bulk_orders'));
           b2bSnapshot.forEach((docSnap) => rBulk.push({ id: docSnap.id, ...docSnap.data() }));
+
+          const pricesSnapshot = await getDocs(collection(db, 'medicine_prices'));
+          pricesSnapshot.forEach((docSnap) => rPrices.push({ id: docSnap.id, ...docSnap.data() }));
           
           fetchedSuccessfully = true;
           setSyncStatus('success');
@@ -94,6 +107,22 @@ export default function AdminDashboard({ onLogout }) {
         
         setSyncStatus('mock');
       }
+
+      // Load prices from local storage if firestore didn't return them
+      if (rPrices.length === 0) {
+        rPrices = JSON.parse(localStorage.getItem('medicine_prices') || '[]');
+        if (rPrices.length === 0) {
+          // Seed defaults
+          rPrices = [
+            { id: '1', name: 'Arnica Montana', size: '30ml', price: '100' },
+            { id: '2', name: 'Nux Vomica', size: '30ml', price: '105' },
+            { id: '3', name: 'Belladonna', size: '30ml', price: '95' },
+            { id: '4', name: 'Rhus Tox', size: '30ml', price: '100' }
+          ];
+          localStorage.setItem('medicine_prices', JSON.stringify(rPrices));
+        }
+      }
+      setMedicinePrices(rPrices);
 
       // Dynamic field normalization so the table renders cleanly in all formats!
       const normalizedOrders = rOrders.map(o => ({
@@ -181,6 +210,21 @@ export default function AdminDashboard({ onLogout }) {
     setStatusFilter('ALL');
   }, [activeTab]);
 
+  // Helper: silently send WhatsApp via /api/sendWhatsApp (no browser popup)
+  const sendWhatsAppSilent = (payload) => {
+    fetch('/api/sendWhatsApp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.status === 'success') console.log(`✅ WhatsApp sent [${payload.type}] to`, payload.phone || payload.patient_phone);
+        else console.warn('⚠️ WhatsApp send result:', d);
+      })
+      .catch(e => console.error('❌ WhatsApp API error:', e));
+  };
+
   // Status updaters for Retail Orders in portal
   const handleUpdatePortalOrderStatus = async (orderId, newStatus) => {
     const order = retailOrders.find(o => o.id === orderId);
@@ -222,6 +266,16 @@ export default function AdminDashboard({ onLogout }) {
       }).catch(e => console.error('Sheets status sync failed:', e));
 
       toast.success(`Order status updated to "${newStatus}"`);
+
+      // Auto-send WhatsApp silently (no browser popup)
+      sendWhatsAppSilent({
+        type: 'retail_status_update',
+        customer_name: order.customerName || order.name,
+        phone: order.phone,
+        medicines_list: order.medicinesList || order.medicines,
+        total_price: order.total_price,
+        order_status: newStatus
+      });
     } catch (err) {
       console.error('Failed to update retail order status from portal:', err);
       toast.error('Failed to update order status');
@@ -233,6 +287,7 @@ export default function AdminDashboard({ onLogout }) {
     const order = retailOrders.find(o => o.id === orderId);
     if (!order) return;
     if ((order.total_price || '').trim() === (newPrice || '').trim()) return;
+    if (!newPrice || !newPrice.trim()) return;
 
     // Optimistic Update
     setRetailOrders(prev => prev.map(ord => ord.id === orderId ? { ...ord, total_price: newPrice, totalPrice: newPrice, totalEstimatedPrice: newPrice } : ord));
@@ -269,9 +324,146 @@ export default function AdminDashboard({ onLogout }) {
       }).catch(e => console.error('Sheets price sync failed:', e));
 
       toast.success(`Order price set to ₹${newPrice}`);
+
+      // Auto-send WhatsApp silently (no browser popup)
+      sendWhatsAppSilent({
+        type: 'retail_price_update',
+        customer_name: order.customerName || order.name,
+        phone: order.phone,
+        medicines_list: order.medicinesList || order.medicines,
+        new_price: newPrice
+      });
     } catch (err) {
       console.error('Failed to update retail order price from portal:', err);
       toast.error('Failed to update price');
+    }
+  };
+
+  // Medicine pricing database CRUD handlers
+  const handleAddOrUpdateMedicinePrice = async (e) => {
+    e.preventDefault();
+    if (!newMedName.trim() || !newMedPrice.trim()) {
+      toast.error('Please enter both name and price');
+      return;
+    }
+
+    const priceNum = parseFloat(newMedPrice);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      toast.error('Please enter a valid price');
+      return;
+    }
+
+    if (editingMedId) {
+      // Edit mode
+      const updated = {
+        name: newMedName.trim(),
+        potency: newMedPotency,
+        size: newMedSize,
+        price: newMedPrice.trim()
+      };
+
+      setMedicinePrices(prev => prev.map(m => m.id === editingMedId ? { ...m, ...updated } : m));
+
+      try {
+        let isUpdated = false;
+        if (isFirebaseConfigured && !editingMedId.startsWith('temp_')) {
+          try {
+            await updateDoc(doc(db, 'medicine_prices', editingMedId), updated);
+            isUpdated = true;
+          } catch (fErr) {
+            console.warn("Firestore price edit failed, fallback to local:", fErr);
+          }
+        }
+        if (!isUpdated) {
+          const local = JSON.parse(localStorage.getItem('medicine_prices') || '[]');
+          const idx = local.findIndex(m => m.id === editingMedId);
+          if (idx !== -1) {
+            local[idx] = { ...local[idx], ...updated };
+            localStorage.setItem('medicine_prices', JSON.stringify(local));
+          }
+        }
+        toast.success('Medicine price updated successfully');
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to update medicine price');
+      }
+
+      setEditingMedId(null);
+    } else {
+      // Add mode
+      const tempId = 'temp_' + Date.now();
+      const newPriceObj = {
+        name: newMedName.trim(),
+        potency: newMedPotency,
+        size: newMedSize,
+        price: newMedPrice.trim()
+      };
+
+      setMedicinePrices(prev => [...prev, { id: tempId, ...newPriceObj }]);
+
+      try {
+        let savedId = tempId;
+        if (isFirebaseConfigured) {
+          try {
+            const docRef = await addDoc(collection(db, 'medicine_prices'), newPriceObj);
+            savedId = docRef.id;
+            // Update temp ID to actual Firestore ID
+            setMedicinePrices(prev => prev.map(m => m.id === tempId ? { ...m, id: savedId } : m));
+          } catch (fErr) {
+            console.warn("Firestore price add failed, fallback to local:", fErr);
+          }
+        }
+        
+        // Always save to localStorage as sync/fallback
+        const local = JSON.parse(localStorage.getItem('medicine_prices') || '[]');
+        local.push({ id: savedId, ...newPriceObj });
+        localStorage.setItem('medicine_prices', JSON.stringify(local));
+        
+        toast.success('Medicine price added successfully');
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to save medicine price');
+      }
+    }
+
+    setNewMedName('');
+    setNewMedPotency('30C');
+    setNewMedPrice('');
+    setNewMedSize('30ml');
+  };
+
+  const handleEditMedPrice = (med) => {
+    setEditingMedId(med.id);
+    setNewMedName(med.name);
+    setNewMedPotency(med.potency || '30C');
+    setNewMedSize(med.size || '30ml');
+    setNewMedPrice(med.price);
+  };
+
+  const handleDeleteMedPrice = async (medId) => {
+    if (!confirm('Are you sure you want to delete this price record?')) return;
+
+    setMedicinePrices(prev => prev.filter(m => m.id !== medId));
+
+    try {
+      let isDeleted = false;
+      if (isFirebaseConfigured && !medId.startsWith('temp_')) {
+        try {
+          await deleteDoc(doc(db, 'medicine_prices', medId));
+          isDeleted = true;
+        } catch (fErr) {
+          console.warn("Firestore price delete failed, fallback to local:", fErr);
+        }
+      }
+
+      const local = JSON.parse(localStorage.getItem('medicine_prices') || '[]');
+      const filtered = local.filter(m => m.id !== medId);
+      localStorage.setItem('medicine_prices', JSON.stringify(filtered));
+
+      toast.success('Medicine price deleted');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete medicine price');
     }
   };
 
@@ -318,6 +510,16 @@ export default function AdminDashboard({ onLogout }) {
       }).catch(e => console.error('Sheets appointment sync failed:', e));
 
       toast.success(`Appointment status updated to "${newStatus}"`);
+
+      // Auto-send WhatsApp silently (no browser popup)
+      sendWhatsAppSilent({
+        type: 'appointment_status',
+        patient_name: apt.patientName || apt.patient_name,
+        patient_phone: apt.patientPhone || apt.patient_phone,
+        apt_status: newStatus,
+        apt_date: apt.appointmentDate || apt.appointment_date,
+        apt_slot: apt.timeSlot || apt.time_slot
+      });
     } catch (err) {
       console.error('Failed to update appointment status from portal:', err);
       toast.error('Failed to update appointment status');
@@ -530,13 +732,21 @@ export default function AdminDashboard({ onLogout }) {
                     <h4 className="font-extrabold text-white text-base tracking-tight">{order.customerName || order.name}</h4>
                     {order.phone && (
                       <a 
-                        href={`https://wa.me/91${order.phone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`Hello ${order.customerName || order.name}, regarding your order from Kanchan Homoeo Hall for: ${order.medicinesList || order.medicines}. We wanted to inform you...`)}`} 
+                        href={`https://wa.me/91${order.phone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(
+                          order.total_price && order.total_price !== 'TBD'
+                            ? `Hello ${order.customerName || order.name},\n\nYour retail order request from *Kanchan Homoeo Hall* has been verified!\n\n💊 *Medicines*:\n${order.medicinesList || order.medicines}\n\n✅ *Confirmed MRP Total*: *₹${order.total_price}* (including discount)\n\nWe are preparing your package for dispatch. Thank you! 🙏`
+                            : `Hello ${order.customerName || order.name}, regarding your order from Kanchan Homoeo Hall for: ${order.medicinesList || order.medicines}. We wanted to inform you...`
+                        )}`} 
                         target="_blank" 
                         rel="noreferrer" 
-                        className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/25 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all"
+                        className={`flex items-center gap-1 border px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                          order.total_price && order.total_price !== 'TBD'
+                            ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30'
+                            : 'bg-[#0F766E]/10 border-[#0F766E]/20 text-[#2DD4BF] hover:bg-[#0F766E]/25'
+                        }`}
                       >
                         <MessageCircle className="w-3.5 h-3.5" />
-                        <span>WhatsApp</span>
+                        <span>{order.total_price && order.total_price !== 'TBD' ? 'Send confirmed MRP' : 'WhatsApp'}</span>
                       </a>
                     )}
                   </div>
@@ -653,20 +863,35 @@ export default function AdminDashboard({ onLogout }) {
                     </td>
                     <td className="p-4">{renderStatus(order.status || order.lead_status)}</td>
                     <td className="p-4">
-                      <div className="relative inline-block w-40">
-                        <select
-                          value={getNormalizedRetailStatus(order.status || order.lead_status)}
-                          onChange={(e) => handleUpdatePortalOrderStatus(order.id, e.target.value)}
-                          className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
-                        >
-                          <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ {language === 'en' ? 'Pending' : 'लंबित'}</option>
-                          <option value="Booked" className="bg-[#0A1020] text-teal-400">📦 {language === 'en' ? 'Booked' : 'बुक किया गया'}</option>
-                          <option value="Out for Delivery" className="bg-[#0A1020] text-amber-500">🚚 {language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}</option>
-                          <option value="Out of Stock" className="bg-[#0A1020] text-orange-400">⚠️ {language === 'en' ? 'Out of Stock' : 'स्टॉक में नहीं'}</option>
-                          <option value="Delivered" className="bg-[#0A1020] text-emerald-400">✅ {language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}</option>
-                          <option value="Cancelled" className="bg-[#0A1020] text-rose-400">❌ {language === 'en' ? 'Cancelled' : 'रद्द'}</option>
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                      <div className="flex items-center gap-2">
+                        <div className="relative inline-block w-36">
+                          <select
+                            value={getNormalizedRetailStatus(order.status || order.lead_status)}
+                            onChange={(e) => handleUpdatePortalOrderStatus(order.id, e.target.value)}
+                            className="appearance-none w-full bg-[#0B1120] border border-[#1E293B] hover:border-[#0F766E] rounded-lg py-1.5 px-3 pr-8 text-xs text-white focus:outline-none transition-colors cursor-pointer outline-none font-bold"
+                          >
+                            <option value="Pending" className="bg-[#0A1020] text-slate-400">⏳ {language === 'en' ? 'Pending' : 'लंबित'}</option>
+                            <option value="Booked" className="bg-[#0A1020] text-teal-400">📦 {language === 'en' ? 'Booked' : 'बुक किया गया'}</option>
+                            <option value="Out for Delivery" className="bg-[#0A1020] text-amber-500">🚚 {language === 'en' ? 'Out for Delivery' : 'डिलिवरी के लिए बाहर'}</option>
+                            <option value="Out of Stock" className="bg-[#0A1020] text-orange-400">⚠️ {language === 'en' ? 'Out of Stock' : 'स्टॉक में नहीं'}</option>
+                            <option value="Delivered" className="bg-[#0A1020] text-emerald-400">✅ {language === 'en' ? 'Delivered' : 'डिलिवर हो गया'}</option>
+                            <option value="Cancelled" className="bg-[#0A1020] text-rose-400">❌ {language === 'en' ? 'Cancelled' : 'रद्द'}</option>
+                          </select>
+                          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                        </div>
+                        {order.phone && order.total_price && order.total_price !== 'TBD' && (
+                          <a 
+                            href={`https://wa.me/91${order.phone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(
+                              `Hello ${order.customerName || order.name},\n\nYour retail order request from *Kanchan Homoeo Hall* has been verified!\n\n💊 *Medicines*:\n${order.medicinesList || order.medicines}\n\n✅ *Confirmed MRP Total*: *₹${order.total_price}* (including discount)\n\nWe are preparing your package for dispatch. Thank you! 🙏`
+                            )}`}
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="flex items-center justify-center p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors cursor-pointer shadow-md shadow-emerald-900/10 hover:scale-105 transition-transform"
+                            title="Send confirmed price receipt via WhatsApp"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </a>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -851,6 +1076,157 @@ export default function AdminDashboard({ onLogout }) {
         </div>
       );
     }
+
+    if (activeTab === 'pricing') {
+      const filteredPrices = medicinePrices.filter(p => 
+        (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.size || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+      return (
+        <div className="p-6 space-y-6">
+          {/* Add / Edit Form */}
+          <form onSubmit={handleAddOrUpdateMedicinePrice} className="bg-[#111827] border border-[#1E293B] rounded-2xl p-5 space-y-4 shadow-xl">
+            <h3 className="text-sm font-black uppercase tracking-widest text-[#2DD4BF] flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              {editingMedId ? 'Edit Medicine Price' : 'Add New Medicine Price'}
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-slate-400">Medicine Name</label>
+                <input 
+                  type="text" 
+                  value={newMedName} 
+                  onChange={(e) => setNewMedName(e.target.value)} 
+                  placeholder="e.g. Arnica Montana" 
+                  className="w-full bg-[#0A1020] border border-[#1E293B] rounded-xl py-2.5 px-3.5 text-xs text-white placeholder-slate-650 focus:outline-none focus:border-[#0F766E] transition-colors"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-slate-400">Potency</label>
+                <select 
+                  value={newMedPotency} 
+                  onChange={(e) => setNewMedPotency(e.target.value)} 
+                  className="w-full bg-[#0A1020] border border-[#1E293B] rounded-xl py-2.5 px-3.5 text-xs text-white focus:outline-none focus:border-[#0F766E] transition-colors outline-none font-bold"
+                >
+                  <option value="30C">30C (Standard Dilution)</option>
+                  <option value="200C">200C (Standard Dilution)</option>
+                  <option value="1M">1M (High Dilution)</option>
+                  <option value="Q">Q (Mother Tincture)</option>
+                  <option value="6X">6X (Tissue Salt)</option>
+                  <option value="12X">12X (Tissue Salt)</option>
+                  <option value="30X">30X (Tissue Salt)</option>
+                  <option value="custom">Other / Custom</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-slate-400">Bottle Size</label>
+                <select 
+                  value={newMedSize} 
+                  onChange={(e) => setNewMedSize(e.target.value)} 
+                  className="w-full bg-[#0A1020] border border-[#1E293B] rounded-xl py-2.5 px-3.5 text-xs text-white focus:outline-none focus:border-[#0F766E] transition-colors outline-none font-bold"
+                >
+                  <option value="30ml">30ml (Standard Liquid)</option>
+                  <option value="100ml">100ml (Large Liquid)</option>
+                  <option value="450ml">450ml (Clinic/Bulk Liquid)</option>
+                  <option value="15g (Tablets)">15g (Standard Tablets)</option>
+                  <option value="25g (Tablets)">25g (Large Tablets)</option>
+                  <option value="custom">Other / Custom</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-slate-400">Price (INR)</label>
+                <div className="flex gap-2 items-center">
+                  <div className="flex items-center gap-1 bg-[#0A1020] border border-[#1E293B] rounded-xl px-3 py-2 flex-1 animate-none">
+                    <span className="text-emerald-500 font-bold text-xs">₹</span>
+                    <input 
+                      type="text" 
+                      value={newMedPrice} 
+                      onChange={(e) => setNewMedPrice(e.target.value)} 
+                      placeholder="e.g. 100" 
+                      className="w-full bg-transparent border-none text-xs text-white placeholder-slate-650 focus:outline-none outline-none font-bold text-right"
+                    />
+                  </div>
+                  <button 
+                    type="submit" 
+                    className="bg-[#0F766E] hover:bg-[#0D635C] text-white rounded-xl py-2.5 px-6 text-xs font-bold uppercase tracking-widest transition-all shadow-md select-none shrink-0 cursor-pointer"
+                  >
+                    {editingMedId ? 'Update' : 'Add'}
+                  </button>
+                  {editingMedId && (
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setEditingMedId(null);
+                        setNewMedName('');
+                        setNewMedPrice('');
+                        setNewMedSize('30ml');
+                      }} 
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-350 border border-slate-700 rounded-xl py-2.5 px-4 text-xs font-bold uppercase tracking-widest transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </form>
+
+          {/* Database Table */}
+          <div className="bg-[#111827] border border-[#1E293B] rounded-2xl overflow-hidden shadow-xl">
+            {filteredPrices.length === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-xs font-medium">
+                No pricing records found. Type to add one above!
+              </div>
+            ) : (
+              <div className="w-full overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                  <thead className="bg-[#0A1020]">
+                    <tr className="border-b border-[#1E293B] text-[10px] uppercase tracking-widest text-slate-500 font-bold">
+                      <th className="p-4 pl-6">Medicine Name</th>
+                      <th className="p-4">Potency</th>
+                      <th className="p-4">Bottle Size</th>
+                      <th className="p-4">Price (MRP)</th>
+                      <th className="p-4 text-right pr-6">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm divide-y divide-[#1E293B]/50 font-medium">
+                    {filteredPrices.map((med, idx) => (
+                      <tr key={med.id || idx} className="hover:bg-[#1E293B]/30 transition-colors">
+                        <td className="p-4 pl-6 text-white font-extrabold">{med.name}</td>
+                        <td className="p-4 text-[#2DD4BF] font-mono font-bold">{med.potency || '—'}</td>
+                        <td className="p-4 text-slate-300 font-mono">{med.size}</td>
+                        <td className="p-4 text-emerald-400 font-mono font-bold">₹{med.price}</td>
+                        <td className="p-4 text-right pr-6 space-x-2">
+                          <button 
+                            onClick={() => handleEditMedPrice(med)} 
+                            className="inline-flex items-center gap-1.5 bg-[#0F766E]/10 border border-[#0F766E]/20 text-[#2DD4BF] hover:bg-[#0F766E]/25 px-3 py-1.5 rounded-lg text-2xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                          >
+                            <Edit className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteMedPrice(med.id)} 
+                            className="inline-flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-450 hover:bg-rose-500/25 px-3 py-1.5 rounded-lg text-2xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Delete</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
   };
 
   const EmptyState = ({ tab, isFiltered }) => {
@@ -942,27 +1318,45 @@ export default function AdminDashboard({ onLogout }) {
               )}
             </p>
           </div>
-
-          {/* Clinic Override */}
-          <div className="bg-[#111827] border border-[#1E293B] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 shadow-xl w-full lg:w-auto">
-            <div>
-              <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                <Clock className="w-3 h-3" /> {t('portal.clinicStatusOverride')}
-              </span>
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-650 mt-0.5">
-                {language === 'en' ? 'Force Portal Open Status' : 'पोर्टल खुली स्थिति बाध्य करें'}
-              </span>
+<div className="bg-[#111827] border border-[#1E293B] rounded-xl p-4 flex items-center justify-between gap-4 shadow-xl w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                  <MessageCircle className="w-5 h-5 text-emerald-500" />
+                </div>
+                <div>
+                  <span className="block text-xs font-bold text-white">WhatsApp Gateway</span>
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase tracking-wider mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">API Latency</span>
+                <span className="text-xs font-mono font-bold text-[#2DD4BF]">24ms</span>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 bg-[#0B1120] p-1 rounded-lg border border-[#1E293B] w-full sm:w-auto">
-              <button onClick={() => handleOverrideStatusChange('auto')} className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${overrideStatus === 'auto' ? 'bg-[#0F766E] text-white shadow-[0_0_10px_rgba(15,118,110,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
-                <RefreshCw className="w-3 h-3 text-[#2DD4BF]" /> {language === 'en' ? 'Auto' : 'ऑटो'}
-              </button>
-              <button onClick={() => handleOverrideStatusChange('open')} className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${overrideStatus === 'open' ? 'bg-[#166534] text-white shadow-[0_0_10px_rgba(22,101,52,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
-                <CheckCircle className="w-3 h-3 text-emerald-500" /> {t('portal.forceOpen')}
-              </button>
-              <button onClick={() => handleOverrideStatusChange('closed')} className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${overrideStatus === 'closed' ? 'bg-[#7F1D1D] text-white shadow-[0_0_10px_rgba(127,29,29,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
-                <XCircle className="w-3 h-3 text-rose-500" /> {t('portal.forceClosed')}
-              </button>
+
+            {/* Clinic Override */}
+            <div className="bg-[#111827] border border-[#1E293B] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 shadow-xl w-full">
+              <div>
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <Clock className="w-3 h-3" /> {t('portal.clinicStatusOverride')}
+                </span>
+                <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-650 mt-0.5">
+                  {language === 'en' ? 'Force Portal Open Status' : 'पोर्टल खुली स्थिति बाध्य करें'}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 bg-[#0B1120] p-1 rounded-lg border border-[#1E293B] w-full sm:w-auto">
+                <button onClick={() => handleOverrideStatusChange('auto')} className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${overrideStatus === 'auto' ? 'bg-[#0F766E] text-white shadow-[0_0_10px_rgba(15,118,110,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
+                  <RefreshCw className="w-3 h-3 text-[#2DD4BF]" /> {language === 'en' ? 'Auto' : 'ऑटो'}
+                </button>
+                <button onClick={() => handleOverrideStatusChange('open')} className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${overrideStatus === 'open' ? 'bg-[#166534] text-white shadow-[0_0_10px_rgba(22,101,52,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
+                  <CheckCircle className="w-3 h-3 text-emerald-500" /> {t('portal.forceOpen')}
+                </button>
+                <button onClick={() => handleOverrideStatusChange('closed')} className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${overrideStatus === 'closed' ? 'bg-[#7F1D1D] text-white shadow-[0_0_10px_rgba(127,29,29,0.4)]' : 'text-slate-500 hover:text-slate-300'}`}>
+                  <XCircle className="w-3 h-3 text-rose-500" /> {t('portal.forceClosed')}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -971,22 +1365,28 @@ export default function AdminDashboard({ onLogout }) {
         <div className="flex justify-start sm:justify-center mb-8 relative z-10 overflow-x-auto pb-2 scrollbar-none">
           <div className="flex items-center bg-[#111827] border border-[#1E293B] rounded-xl p-1.5 shadow-lg whitespace-nowrap min-w-max">
             <button 
-              onClick={() => setActiveTab('retail')}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'retail' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+              onClick={() => { setActiveTab('retail'); setSearchTerm(''); }}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all cursor-pointer ${activeTab === 'retail' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
               <Package className={`w-4 h-4 ${activeTab === 'retail' ? 'text-white' : 'text-amber-500'}`} />
               {language === 'en' ? 'Retail Orders' : 'खुदरा ऑर्डर'} ({retailOrders.length})
             </button>
             <button 
-              onClick={() => setActiveTab('consultations')}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'consultations' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+              onClick={() => { setActiveTab('consultations'); setSearchTerm(''); }}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all cursor-pointer ${activeTab === 'consultations' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
               <Stethoscope className={`w-4 h-4 ${activeTab === 'consultations' ? 'text-white' : 'text-blue-400'}`} />
               {language === 'en' ? 'Consultations' : 'परामर्श'} ({consultations.length})
             </button>
             <button 
-              onClick={() => setActiveTab('wholesale')}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'wholesale' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+              onClick={() => { setActiveTab('wholesale'); setSearchTerm(''); }}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all cursor-pointer ${activeTab === 'wholesale' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
               <Briefcase className={`w-4 h-4 ${activeTab === 'wholesale' ? 'text-white' : 'text-purple-400'}`} />
               {language === 'en' ? 'Wholesale Queries' : 'थोक पूछताछ'} ({wholesaleQueries.length})
+            </button>
+            <button 
+              onClick={() => { setActiveTab('pricing'); setSearchTerm(''); }}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all cursor-pointer ${activeTab === 'pricing' ? 'bg-[#0F766E] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+              <Database className={`w-4 h-4 ${activeTab === 'pricing' ? 'text-white' : 'text-cyan-400'}`} />
+              {language === 'en' ? 'Pricing Database' : 'मूल्य डेटाबेस'} ({medicinePrices.length})
             </button>
           </div>
         </div>
@@ -1004,12 +1404,14 @@ export default function AdminDashboard({ onLogout }) {
                   ? (language === 'en' ? "Search orders by name, phone, or address..." : "नाम, फोन या पते से ऑर्डर खोजें...") 
                   : activeTab === 'consultations'
                   ? (language === 'en' ? "Search appointments by patient name or phone..." : "मरीज के नाम या फोन से अपॉइंटमेंट खोजें...")
+                  : activeTab === 'pricing'
+                  ? (language === 'en' ? "Search database by medicine name..." : "दवा के नाम से डेटाबेस खोजें...")
                   : (language === 'en' ? "Search wholesale queries by name, company, or remedies..." : "नाम, कंपनी या दवाओं से थोक पूछताछ खोजें...")
               }
               className="w-full bg-[#111827] border border-[#1E293B] rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#0F766E] transition-colors shadow-lg"
             />
           </div>
-          {activeTab !== 'wholesale' && (
+          {activeTab !== 'wholesale' && activeTab !== 'pricing' && (
             <div className="relative w-full md:w-auto">
               <select 
                 value={statusFilter}
@@ -1033,13 +1435,15 @@ export default function AdminDashboard({ onLogout }) {
               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
             </div>
           )}
-          <button 
-            onClick={handleExportCSV}
-            className="flex items-center justify-center gap-2 bg-[#111827] border border-[#1E293B] hover:border-slate-500 rounded-xl py-3 px-6 text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-all shadow-lg select-none cursor-pointer w-full md:w-auto"
-          >
-            <Download className="w-4 h-4 text-blue-400" />
-            {language === 'en' ? 'Export CSV' : 'सीएसवी निर्यात करें'}
-          </button>
+          {activeTab !== 'pricing' && (
+            <button 
+              onClick={handleExportCSV}
+              className="flex items-center justify-center gap-2 bg-[#111827] border border-[#1E293B] hover:border-slate-500 rounded-xl py-3 px-6 text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-all shadow-lg select-none cursor-pointer w-full md:w-auto"
+            >
+              <Download className="w-4 h-4 text-blue-400" />
+              {language === 'en' ? 'Export CSV' : 'सीएसवी निर्यात करें'}
+            </button>
+          )}
         </div>
 
         {/* Content Area */}

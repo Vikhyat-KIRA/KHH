@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { medicines, items, address } = req.body;
+    const { medicines, items, address, customPrices } = req.body;
 
     // Check if we have either structured items or raw medicines text
     const hasItems = Array.isArray(items) && items.length > 0;
@@ -34,34 +34,120 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Please provide a list of medicines to estimate.' });
     }
 
+    // Helper to calculate local delivery charges identically to frontend
+    const calcLocalDeliveryCharge = (subtotal, addressStr) => {
+      if (subtotal >= 500) return 0;
+      if (!addressStr || !addressStr.trim()) return 50;
+      const addr = addressStr.toLowerCase();
+      if (
+        addr.includes('upper bazar') || addr.includes('lalpur') || addr.includes('circular road') || 
+        addr.includes('albert ekka') || addr.includes('main road') || addr.includes('hindpiri') ||
+        addr.includes('daily market') || addr.includes('kotwali') || addr.includes('purulia road') ||
+        addr.includes('dr. fatehullah') || addr.includes('kutchery') || addr.includes('morabadi') || 
+        addr.includes('bariatu') || addr.includes('kokar') || addr.includes('kantatoli') || 
+        addr.includes('bahubazar') || addr.includes('kadru') || addr.includes('harmu') ||
+        addr.includes('ashok nagar') || addr.includes('argora')
+      ) return 0;
+      if (
+        addr.includes('doranda') || addr.includes('hinoo') || addr.includes('birsa nagar') || 
+        addr.includes('jagannathpur') || addr.includes('hatia') || addr.includes('dhurwa') || 
+        addr.includes('namkum') || addr.includes('khelgaon') || addr.includes('pandra') || 
+        addr.includes('ratu road') || addr.includes('pisko') || addr.includes('sarmoli')
+      ) return 75;
+      if (
+        addr.includes('mesra') || addr.includes('bit mesra') || addr.includes('tupudana') || 
+        addr.includes('ormanjhi') || addr.includes('kanke') || addr.includes('vikas') ||
+        addr.includes('sidroll')
+      ) return 100;
+      return 50;
+    };
+
+    // Step 1: Attempt to match items locally from customPrices database first
+    const matchedItems = [];
+    const unmatchedItems = [];
+
+    if (hasItems && Array.isArray(customPrices)) {
+      items.forEach((item) => {
+        const itemClean = item.name.toLowerCase().trim();
+        
+        // Find best match in customPrices
+        const match = customPrices.find((cp) => {
+          const cpClean = cp.name.toLowerCase().trim();
+          // Name match if either contains the other
+          const nameMatch = itemClean.includes(cpClean) || cpClean.includes(itemClean);
+          // Size match (case-insensitive)
+          const sizeMatch = item.bottleSize && cp.size && 
+            item.bottleSize.toLowerCase().trim() === cp.size.toLowerCase().trim();
+          return nameMatch && sizeMatch;
+        });
+
+        if (match) {
+          const unitPrice = parseFloat(match.price) || 100;
+          matchedItems.push({
+            name: `${item.name} (${item.bottleSize || '30ml'})`,
+            quantity: item.quantity || 1,
+            estimatedUnitPrice: unitPrice,
+            totalPrice: unitPrice * (item.quantity || 1)
+          });
+        } else {
+          unmatchedItems.push(item);
+        }
+      });
+    } else if (hasItems) {
+      unmatchedItems.push(...items);
+    }
+
+    // Step 2: If everything is matched locally, return immediately!
+    if (hasItems && unmatchedItems.length === 0) {
+      const subtotal = matchedItems.reduce((acc, itm) => acc + itm.totalPrice, 0);
+      const discount = Math.round(subtotal * 0.1);
+      const deliveryCharge = calcLocalDeliveryCharge(subtotal, address);
+      const grandTotal = subtotal - discount + deliveryCharge;
+
+      console.log('✅ All prices matched locally from custom database. Skipping AI call.');
+      return res.status(200).json({
+        success: true,
+        items: matchedItems,
+        subtotal,
+        discount,
+        deliveryCharge,
+        grandTotal,
+        explanation: "Calculated with 100% precision from local pharmacy inventory database."
+      });
+    }
+
+    // Otherwise, we have unmatched items. We fetch unmatched ones via Gemini AI,
+    // and combine them with our matched ones!
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (apiKey && apiKey !== 'YOUR_GEMINI_API_KEY') {
-      console.log('🔮 Estimating prices using Gemini AI...');
+      console.log(`🔮 Estimating ${unmatchedItems.length} unmatched prices using Gemini AI...`);
       try {
         let inputDescription = '';
         if (hasItems) {
-          inputDescription = `Structured list of items:\n${JSON.stringify(items, null, 2)}`;
+          inputDescription = `Structured list of UNMATCHED items:\n${JSON.stringify(unmatchedItems, null, 2)}`;
         } else {
           inputDescription = `Unstructured customer text:\n"${medicines}"`;
         }
 
-        const prompt = `You are a professional homeopathic pharmacist and price estimator for Kanchan Homoeo Hall in Ranchi, Jharkhand, India.
+         const prompt = `You are a professional homeopathic pharmacist and price estimator for Kanchan Homoeo Hall in Ranchi, Jharkhand, India.
 Given the customer's request:
 ${inputDescription}
 Customer's delivery address (if provided): "${address || 'Not Provided'}"
 
 Estimate realistic retail prices in Indian Rupees (INR) for each medicine.
-CRITICAL INSTRUCTION: You MUST use Google Search to find the EXACT and LATEST real-time Maximum Retail Price (MRP) in India (on sites like Tata 1mg, Homeomart, PharmEasy, or similar) for each medicine in the customer's request according to its brand (e.g., SBL, Dr. Reckeweg, Adel, Schwabe), size (e.g., 11ml, 20ml, 22ml, 30ml, 100ml, 15g, 25g, 450g), and potency (e.g., 30C, 200C, 1M, Q).
+CRITICAL INSTRUCTION: You MUST use Google Search to find the EXACT and LATEST real-time Maximum Retail Price (MRP) in India for each medicine. 
+To guarantee high accuracy, you MUST cross-reference your search results across at least two independent online pharmaceutical sources (e.g., Tata 1mg, Homeomart, PharmEasy, or similar) to ensure the price is correct.
+
 Since prices change frequently, you MUST base your estimate on the latest real-time MRP found on the web.
 
-If you cannot find the exact real-time price or MRP of any requested medicine via live Google Search, do NOT fall back to standard baseline rates or guess. Instead, you MUST immediately return a failure JSON response indicating you had trouble connecting/fetching the live rates:
+If you find a significant price discrepancy between sources (e.g., over 30% difference), or if you cannot find the exact real-time price/MRP of any requested medicine via live Google Search on at least two sources, do NOT fall back to standard baseline rates or guess. Instead, you MUST immediately return a failure JSON response indicating you had trouble connecting/fetching the live rates:
 {
   "success": false,
   "message": "OOPS, had issues connecting the stats,Try Again."
 }
 
-Only if you successfully find the exact real-time prices for all medicines, multiply unit price by the quantity.
+Only if you successfully find and cross-reference the exact real-time prices for all medicines, multiply unit price by the quantity.
 
 Perform the following calculations:
 1. Subtotal: Sum of all medicine prices.
@@ -130,7 +216,27 @@ Return your response ONLY as a JSON object, with no markdown formatting or extra
 
         if (responseText) {
           const parsed = JSON.parse(responseText.trim());
-          console.log('✅ Price estimation completed successfully via Gemini AI.');
+          
+          if (parsed.success) {
+            // Combine with locally matched items!
+            const combinedItems = [...matchedItems, ...(parsed.items || [])];
+            const combinedSubtotal = combinedItems.reduce((acc, itm) => acc + itm.totalPrice, 0);
+            const combinedDiscount = Math.round(combinedSubtotal * 0.1);
+            const combinedDelivery = calcLocalDeliveryCharge(combinedSubtotal, address);
+            const combinedGrand = combinedSubtotal - combinedDiscount + combinedDelivery;
+
+            console.log('✅ Combined database prices and Gemini AI-fetched prices successfully.');
+            return res.status(200).json({
+              success: true,
+              items: combinedItems,
+              subtotal: combinedSubtotal,
+              discount: combinedDiscount,
+              deliveryCharge: combinedDelivery,
+              grandTotal: combinedGrand,
+              explanation: `Mixed Pricing Model: Matched ${matchedItems.length} from local DB and estimated ${unmatchedItems.length} via Web Search AI.`
+            });
+          }
+          
           return res.status(200).json(parsed);
         } else {
           throw new Error('Empty response from Gemini API.');

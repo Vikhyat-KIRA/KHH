@@ -18,8 +18,72 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { db, isFirebaseConfigured, mockDb } from '../firebaseClient';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const HOMEOPATHIC_REMEDIES = [
+  "Aconitum Napellus", "Allium Cepa", "Apis Mellifica", "Arnica Montana",
+  "Arsenicum Album", "Belladonna", "Bryonia Alba", "Calcarea Carbonica",
+  "Cantharis", "Carbo Vegetabilis", "Chamomilla", "China Officinalis",
+  "Coffea Cruda", "Colocynthis", "Drosera", "Euphrasia", "Ferrum Phosphoricum",
+  "Gelsemium", "Hepar Sulphuris", "Hypericum", "Ignatia Amara", "Ipecacuanha",
+  "Kali Bichromicum", "Lachesis", "Ledum Palustre", "Lycopodium", "Magnesia Phosphorica",
+  "Mercurius Solubilis", "Natrum Muriaticum", "Nux Vomica", "Phosphorus", "Pulsatilla",
+  "Rhus Toxicodendron", "Ruta Graveolens", "Sepia", "Silicea", "Spongia Tosta",
+  "Staphysagria", "Sulphur", "Symphytum", "Thuja Occidentalis"
+];
+
+function MedicineNameInput({ value, onChange, placeholder, error }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const filtered = HOMEOPATHIC_REMEDIES.filter(r => 
+    r.toLowerCase().includes(value.toLowerCase())
+  );
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+        placeholder={placeholder}
+        className="block w-full px-3 py-2 text-xs bg-white border border-[#EAE5DC] rounded-xl text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#115E59]/40 transition-all shadow-sm"
+      />
+      <AnimatePresence>
+        {isOpen && value && filtered.length > 0 && (
+          <motion.ul
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="absolute z-50 w-full mt-1 bg-white border border-[#EAE5DC] rounded-xl shadow-lg max-h-40 overflow-y-auto"
+          >
+            {filtered.map(rem => (
+              <li
+                key={rem}
+                onClick={() => {
+                  onChange(rem);
+                  setIsOpen(false);
+                }}
+                className="px-3 py-2 text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer transition-colors"
+              >
+                {rem}
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+      {error && (
+        <p className="text-[9px] text-rose-600 mt-1 font-semibold pl-0.5">{error}</p>
+      )}
+    </div>
+  );
+}
 
 export default function RetailForm() {
   const { language, t } = useLanguage();
@@ -199,12 +263,29 @@ export default function RetailForm() {
     setEstimatedData(null);
 
     try {
+      // Fetch custom prices database
+      let customPrices = [];
+      if (isFirebaseConfigured) {
+        try {
+          const snapshot = await getDocs(collection(db, 'medicine_prices'));
+          snapshot.forEach((docSnap) => {
+            customPrices.push(docSnap.data());
+          });
+        } catch (fErr) {
+          console.warn("⚠️ Firestore prices fetch failed in retail form, fallback to local:", fErr);
+        }
+      }
+      if (customPrices.length === 0) {
+        customPrices = JSON.parse(localStorage.getItem('medicine_prices') || '[]');
+      }
+
       const res = await fetch('/api/estimatePrice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           items: medicineItems,
-          address: address.trim()
+          address: address.trim(),
+          customPrices
         })
       });
 
@@ -517,6 +598,13 @@ export default function RetailForm() {
                     <span className="text-[#115E59]">₹{orderDetails.total_price}</span>
                   </div>
                 </div>
+                
+                {/* Est. Warning */}
+                <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-[10px] leading-normal font-semibold">
+                  ⚠️ {language === 'en' 
+                    ? "PRICES ARE DYNAMIC ESTIMATES: Homeopathic MRPs change frequently. The clinic will verify the exact printed MRPs on the bottles and confirm the final total via WhatsApp."
+                    : "कीमतें केवल अनुमानित हैं: होम्योपैथिक दवाओं की एमआरपी बदलती रहती है। क्लिनिक बोतलों पर छपी वास्तविक एमआरपी की जांच करेगा और व्हाट्सएप पर अंतिम राशि की पुष्टि करेगा।"}
+                </div>
               </div>
 
               {/* Direct WhatsApp Order Submission */}
@@ -706,16 +794,12 @@ export default function RetailForm() {
                           {/* Medicine Name */}
                           <div className="md:col-span-4">
                             <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">{t('forms.medicineName')}</label>
-                            <input
-                              type="text"
+                            <MedicineNameInput
                               value={item.name}
-                              onChange={(e) => updateMedicineRow(index, 'name', e.target.value)}
+                              onChange={(val) => updateMedicineRow(index, 'name', val)}
                               placeholder={t('forms.medicineNamePlaceholder')}
-                              className="block w-full px-3 py-2 text-xs bg-white border border-[#EAE5DC] rounded-xl text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#115E59]/40 transition-all shadow-sm"
+                              error={validationErrors.medicineItems?.[index]}
                             />
-                            {validationErrors.medicineItems?.[index] && (
-                              <p className="text-[9px] text-rose-600 mt-1 font-semibold pl-0.5">{validationErrors.medicineItems[index]}</p>
-                            )}
                           </div>
 
                           {/* Potency */}
