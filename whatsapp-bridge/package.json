@@ -1,0 +1,19 @@
+{
+  "name": "kanchan-whatsapp-bridge",
+  "version": "1.0.0",
+  "description": "Lightweight, 100% free automated WhatsApp bridge for Kanchan Homoeo Hall",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc12",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "firebase": "^12.13.0",
+    "pino": "^9.0.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

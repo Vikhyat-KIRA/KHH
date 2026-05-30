@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAnalytics } from 'firebase/analytics';
 
 // Double check environment variables using Vite's env system
 const firebaseConfig = {
@@ -8,7 +9,8 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Check if Firebase config is fully populated with actual non-placeholder values
@@ -18,14 +20,16 @@ const isConfigValid =
   firebaseConfig.projectId &&
   firebaseConfig.projectId !== 'YOUR_FIREBASE_PROJECT_ID';
 
-let app = null;
 let db = null;
 let isFirebaseConfigured = false;
 
 if (isConfigValid) {
   try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     db = getFirestore(app);
+    if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
+      getAnalytics(app);
+    }
     isFirebaseConfigured = true;
     console.log('✅ Firebase initialized successfully.');
   } catch (error) {
@@ -50,6 +54,32 @@ const mockDb = {
     await new Promise((resolve) => setTimeout(resolve, 200));
     const all = JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
     return all.filter((apt) => apt.appointment_date === dateStr);
+  },
+
+  // Queries appointments matching a phone number
+  getAppointmentsByPhone: async (phoneStr) => {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const all = JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
+    const cleanSearch = phoneStr.replace(/[^0-9]/g, '');
+    if (!cleanSearch) return [];
+    return all.filter((apt) => {
+      const cleanAptPhone = (apt.patient_phone || '').replace(/[^0-9]/g, '');
+      if (!cleanAptPhone) return false;
+      return cleanAptPhone.includes(cleanSearch) || cleanSearch.includes(cleanAptPhone);
+    });
+  },
+
+  // Queries retail orders matching a phone number
+  getRetailOrdersByPhone: async (phoneStr) => {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const all = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+    const cleanSearch = phoneStr.replace(/[^0-9]/g, '');
+    if (!cleanSearch) return [];
+    return all.filter((order) => {
+      const cleanOrderPhone = (order.phone || '').replace(/[^0-9]/g, '');
+      if (!cleanOrderPhone) return false;
+      return cleanOrderPhone.includes(cleanSearch) || cleanSearch.includes(cleanOrderPhone);
+    });
   },
 
   // Adds an appointment
@@ -78,59 +108,84 @@ const mockDb = {
     all.push(newOrder);
     localStorage.setItem('bulk_orders', JSON.stringify(all));
     return newOrder;
+  },
+
+  // Adds a retail order
+  addRetailOrder: async (order) => {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    const all = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+    const newOrder = {
+      id: 'mock_retail_' + Math.random().toString(36).substr(2, 9),
+      ...order,
+      created_at: new Date().toISOString(),
+      lead_status: 'Pending' // Initial state
+    };
+    all.push(newOrder);
+    localStorage.setItem('retail_orders', JSON.stringify(all));
+    return newOrder;
+  },
+
+  // Get all retail orders
+  getAllRetailOrders: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return JSON.parse(localStorage.getItem('retail_orders') || '[]');
+  },
+
+  // Get all appointments
+  getAllAppointments: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
+  },
+
+  // Get all bulk orders
+  getAllBulkOrders: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return JSON.parse(localStorage.getItem('bulk_orders') || '[]');
+  },
+
+  // Update retail order price
+  updateRetailOrderPrice: async (id, price) => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const all = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+    const updated = all.map((order) => {
+      if (order.id === id) {
+        return { ...order, total_price: price };
+      }
+      return order;
+    });
+    localStorage.setItem('retail_orders', JSON.stringify(updated));
+    return true;
+  },
+
+  // Update retail order status
+  updateRetailOrderStatus: async (id, status) => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const all = JSON.parse(localStorage.getItem('retail_orders') || '[]');
+    const updated = all.map((order) => {
+      if (order.id === id) {
+        return { ...order, lead_status: status, status: status };
+      }
+      return order;
+    });
+    localStorage.setItem('retail_orders', JSON.stringify(updated));
+    return true;
+  },
+
+  // Update appointment status
+  updateAppointmentStatus: async (id, status) => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const all = JSON.parse(localStorage.getItem('clinic_appointments') || '[]');
+    const updated = all.map((apt) => {
+      if (apt.id === id) {
+        return { ...apt, status: status, cancelled: status === 'CANCELLED' };
+      }
+      return apt;
+    });
+    localStorage.setItem('clinic_appointments', JSON.stringify(updated));
+    return true;
   }
 };
 
-// Seed initial mock booking data so calendar is instantly interactive with pre-booked slots!
-if (!localStorage.getItem('clinic_appointments_seeded')) {
-  const today = new Date();
-  const getFormattedDate = (offsetDays) => {
-    const d = new Date();
-    d.setDate(today.getDate() + offsetDays);
-    return d.toISOString().split('T')[0];
-  };
 
-  const initialAppointments = [
-    {
-      id: 'seed_1',
-      patient_name: 'Johnathan Archer',
-      patient_phone: '123-456-7890',
-      appointment_date: getFormattedDate(0), // Today
-      time_slot: '10:30 AM',
-      status: 'Confirmed',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'seed_2',
-      patient_name: 'Dr. Elizabeth T.',
-      patient_phone: '987-654-3210',
-      appointment_date: getFormattedDate(0), // Today
-      time_slot: '02:00 PM',
-      status: 'Pending',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'seed_3',
-      patient_name: 'Starfleet Command',
-      patient_phone: '555-0199',
-      appointment_date: getFormattedDate(1), // Tomorrow
-      time_slot: '11:00 AM',
-      status: 'Confirmed',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'seed_4',
-      patient_name: 'Janice Lester',
-      patient_phone: '444-555-1212',
-      appointment_date: getFormattedDate(1), // Tomorrow
-      time_slot: '04:30 PM',
-      status: 'Pending',
-      created_at: new Date().toISOString()
-    }
-  ];
-
-  localStorage.setItem('clinic_appointments', JSON.stringify(initialAppointments));
-  localStorage.setItem('clinic_appointments_seeded', 'true');
-}
 
 export { db, isFirebaseConfigured, mockDb };

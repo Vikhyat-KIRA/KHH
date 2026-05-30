@@ -7,6 +7,11 @@
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-display: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
 
+  /* Typography Sizes */
+  --text-2xs: 0.7rem;    /* 11px */
+  --text-3xs: 0.625rem;  /* 10px */
+  --text-4xs: 0.55rem;   /* 9px */
+
   /* === WARM LIGHT THEME PALETTE === */
   /* Background layers — cream/ivory scale */
   --color-corp-slate-950: #FDFBF7; /* Primary page background — warm cream */
@@ -152,3 +157,118 @@
 .animate-fade-in {
   animation: fade-in 0.25s ease-out both;
 }
+
+/* === CINEMATIC LOGO INTRO LOADER === */
+.intro-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #FDFBF7; /* matching the primary warm cream */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999; /* overlay absolutely everything */
+  opacity: 1;
+  pointer-events: all;
+  animation: fadeOutOverlay 0.8s cubic-bezier(0.4, 0, 0.2, 1) 2.2s forwards;
+  perspective: 1200px; /* 3D context for depth */
+}
+
+.intro-logo {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  box-shadow: 0 12px 36px rgba(17, 94, 89, 0.12);
+  object-fit: cover;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  animation: 
+    flipThreeTimesY 1.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards,
+    expandAndFadeOut 0.8s cubic-bezier(0.7, 0, 0.3, 1) 2.1s forwards;
+}
+
+/* Y-axis 3D flip so the text faces perfectly forward and isn't mirrored at the end */
+@keyframes flipThreeTimesY {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(1080deg); /* 3 full flips (3 * 360deg) */
+  }
+}
+
+/* Cinematic zoom into screen while fading transparency to zero */
+@keyframes expandAndFadeOut {
+  0% {
+    transform: rotateY(1080deg) scale(1);
+    opacity: 1;
+    filter: blur(0px);
+  }
+  100% {
+    transform: rotateY(1080deg) scale(16);
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+
+/* Fades the solid cream background overlay out and turns off click blocking */
+@keyframes fadeOutOverlay {
+  0% {
+    opacity: 1;
+    pointer-events: all;
+  }
+  99% {
+    opacity: 0;
+    pointer-events: all;
+  }
+  100% {
+    opacity: 0;
+    pointer-events: none;
+    display: none;
+  }
+}
+
+/* === BACKGROUND WATERMARK === */
+.bg-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85vw;
+  max-width: 580px;
+  height: 85vw;
+  max-height: 580px;
+  background-image: url('/logo.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.08; /* increased opacity for better visibility */
+  pointer-events: none;
+  z-index: 11; /* placed above the z-10 sections but below the z-50 header for a premium scrolling effect */
+  filter: contrast(0.95) saturate(0.85); /* blends beautifully with the warm theme */
+}
+
+/* === LANGUAGE SELECTOR SCREEN === */
+.language-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #FDFBF7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99998;
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Custom Global Smooth Scroll Target Offset for Sticky Header */
+section[id] {
+  scroll-margin-top: 6rem; /* 5rem for the h-20 header + 1rem of elegant breathing space */
+}
+
+
