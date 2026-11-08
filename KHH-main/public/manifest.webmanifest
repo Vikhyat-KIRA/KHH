@@ -1,0 +1,17 @@
+{
+  "name": "Kanchan Homoeo Hall",
+  "short_name": "KHH",
+  "description": "Book the doctor, order homoeopathic medicines for delivery, or ask for wholesale rates. Upper Bazar, Ranchi.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "en-IN",
+  "background_color": "#F2F4F7",
+  "theme_color": "#1B3FA0",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
