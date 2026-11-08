@@ -3,7 +3,13 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import pino from 'pino';
 import qrcode from 'qrcode-terminal';
-import { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } from '@whiskeysockets/baileys';
+import {
+  makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason,
+  Browsers,
+  fetchLatestBaileysVersion
+} from '@whiskeysockets/baileys';
 import {
   downloadSessionFromFirebase,
   uploadSessionToFirebaseDebounced,
@@ -29,7 +35,6 @@ let isRestoredFromCloud = false;
 async function connectToWhatsApp() {
   console.log('🔄 Starting WhatsApp Socket Connection...');
 
-  // Only download from Firebase once on initial boot
   if (!isRestoredFromCloud) {
     try {
       await downloadSessionFromFirebase();
@@ -41,12 +46,23 @@ async function connectToWhatsApp() {
 
   const { state, saveCreds } = await useMultiFileAuthState('auth_session');
 
+  // Fetch the latest live WhatsApp Web version so Meta NEVER throws Status Code 405!
+  let version = [2, 3000, 1015901307];
+  try {
+    const latest = await fetchLatestBaileysVersion();
+    version = latest.version;
+    console.log(`📡 Using live WhatsApp Web v${version.join('.')}`);
+  } catch (e) {
+    console.warn('⚠️ Using fallback WhatsApp version:', version);
+  }
+
   sock = makeWASocket({
+    version,
     auth: state,
     printQRInTerminal: false,
     logger: pino({ level: 'warn' }),
     browser: Browsers.ubuntu('Chrome'),
-    syncFullHistory: false, // Prevents 2,800+ junk files from flooding your session
+    syncFullHistory: false,
     markOnlineOnConnect: false
   });
 
@@ -97,7 +113,6 @@ async function connectToWhatsApp() {
   });
 }
 
-// Easy Browser QR Scanner Page (No more squinting at Render logs!)
 app.get('/qr', (req, res) => {
   if (connectionStatus === 'connected') {
     return res.send('<h2 style="font-family:sans-serif;color:green;text-align:center;margin-top:50px;">✅ WhatsApp is already connected!</h2>');
@@ -166,7 +181,6 @@ app.listen(PORT, () => {
     console.error('Fatal initialization error:', err);
   });
 
-  // Self-ping every 10 minutes to help prevent Render free tier from spinning down
   setInterval(() => {
     fetch(`${RENDER_EXTERNAL_URL}/status`).catch(() => {});
   }, 10 * 60 * 1000);
