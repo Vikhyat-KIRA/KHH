@@ -17,10 +17,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BookingCalendar from './components/BookingCalendar';
-import InstallButton from './components/InstallButton.jsx'
+import InstallButton from './components/InstallButton.jsx';
 import BulkForm from './components/BulkForm';
 import MyBookings from './components/MyBookings';
 import RetailForm from './components/RetailForm';
+import AdminDashboard from './components/AdminDashboard';
 import { useLanguage } from './context/LanguageContext';
 
 const FAQItem = ({ question, answer }) => {
@@ -122,7 +123,7 @@ export default function App() {
   useEffect(() => {
     const introTimer = setTimeout(() => {
       setShowIntro(false);
-    }, 3000); // unmount loader exactly when CSS animation exits
+    }, 3000);
     return () => clearTimeout(introTimer);
   }, []);
 
@@ -141,6 +142,8 @@ export default function App() {
         if (descMeta) {
           descMeta.setAttribute('content', language === 'en' ? 'Track status of your remedies order.' : 'अपने होम्योपैथिक दवा वितरण ऑर्डर की स्थिति ट्रैक करें।');
         }
+      } else if (activeView === 'admin') {
+        document.title = language === 'en' ? 'Pharmacist Admin Portal - Kanchan Homoeo Hall' : 'फार्मासिस्ट एडमिन पोर्टल - कंचन होम्योपैथी हॉल';
       } else {
         document.title = t('seo.mainTitle');
         const descMeta = document.querySelector('meta[name="description"]');
@@ -156,7 +159,6 @@ export default function App() {
   // Open/closed badge. Mon-Sat, 10:30 AM to 8:00 PM IST
   useEffect(() => {
     const checkStatus = () => {
-      // Check manual override setting from pharmacist admin portal first
       const override = localStorage.getItem('clinic_open_override');
       if (override === 'open') {
         setIsOpenNow(true);
@@ -168,8 +170,6 @@ export default function App() {
 
       try {
         const now = new Date();
-        
-        // Extract hour and minute components in Asia/Kolkata (IST) timezone
         const timeFormatter = new Intl.DateTimeFormat('en-US', {
           timeZone: 'Asia/Kolkata',
           hour: 'numeric',
@@ -184,7 +184,6 @@ export default function App() {
           if (p.type === 'minute') minute = parseInt(p.value, 10);
         });
 
-        // Extract weekday in Asia/Kolkata timezone ("Sun", "Mon", etc.)
         const weekdayFormatter = new Intl.DateTimeFormat('en-US', {
           timeZone: 'Asia/Kolkata',
           weekday: 'short'
@@ -194,15 +193,12 @@ export default function App() {
 
         const decimalTime = hour + minute / 60;
 
-        // Sunday: always closed
-        // Mon–Sat: 10:30 AM (10.5) to 8:00 PM (20.0)
         if (isSunday) {
           setIsOpenNow(false);
         } else {
           setIsOpenNow(decimalTime >= 10.5 && decimalTime < 20.0);
         }
       } catch {
-        // Fallback to local system time in case browser environment doesn't support Intl
         const now = new Date();
         const day = now.getDay();
         const hour = now.getHours();
@@ -219,7 +215,6 @@ export default function App() {
     checkStatus();
     const interval = setInterval(checkStatus, 60000);
 
-    // Listen for manual open status override updates
     const handleOverrideUpdate = () => {
       checkStatus();
     };
@@ -262,15 +257,12 @@ export default function App() {
       {/* Language Selection Overlay */}
       {!showIntro && showLanguageSelect && (
         <div className="language-overlay animate-fade-in">
-          {/* Background Blurs */}
           <div className="absolute top-1/4 right-0 w-80 h-80 rounded-full bg-[#1B3FA0]/5 blur-[120px] pointer-events-none"></div>
           <div className="absolute bottom-1/4 left-0 w-80 h-80 rounded-full bg-[#2A55C7]/5 blur-[100px] pointer-events-none"></div>
           
           <div className="language-card panel max-w-md w-full mx-6 p-8 rounded-3xl relative overflow-hidden transition-all text-center">
-            {/* Accent strip */}
             <div className="absolute top-0 left-0 right-0 h-2 bg-vial"></div>
             
-            {/* Logo in selector card */}
             <img src="/logo.png" alt="Kanchan Homoeo Hall" className="w-24 h-24 rounded-full object-cover mx-auto mb-5 shadow-card ring-4 ring-paper-deep" />
             
             <h2 className="font-display font-extrabold text-2xl tracking-tight text-[#0E1626] mb-2">
@@ -287,7 +279,6 @@ export default function App() {
             </p>
             
             <div className="flex flex-col gap-4">
-              {/* English button */}
               <button
                 onClick={() => {
                   setLanguage('en');
@@ -302,7 +293,6 @@ export default function App() {
                 <span className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 group-hover:bg-[#1B3FA0]/10 group-hover:text-[#1B3FA0] flex items-center justify-center font-bold text-2xs transition-all">EN</span>
               </button>
               
-              {/* Hindi button */}
               <button
                 onClick={() => {
                   setLanguage('hi');
@@ -326,14 +316,12 @@ export default function App() {
         </div>
       )}
 
-      {/* Background Watermark */}
       <div className="bg-watermark"></div>
       
       {/* HEADER / NAVIGATION BAR */}
       {activeView !== 'admin' && (
         <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-[#D3D9E4] transition-all duration-300 shadow-sm relative">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          {/* Logo Brand */}
           <a href="#" className="flex items-center gap-3 group">
             <img src="/logo.png" alt="Kanchan Homoeo Hall" className="w-11 h-11 rounded-full object-cover shrink-0 shadow-md ring-1 ring-rule transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-105" />
             <div className="flex flex-col justify-center">
@@ -346,7 +334,6 @@ export default function App() {
             </div>
           </a>
 
-          {/* Desktop Nav Links */}
           <nav className="hidden xl:flex items-center gap-4 text-[13px] font-semibold tracking-wide">
             <button
               onClick={() => {
@@ -388,7 +375,6 @@ export default function App() {
             </button>
             <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="text-[#566074] hover:text-[#1B3FA0] transition-colors">{t('nav.location')}</a>
             
-            {/* Hover-based language switcher dropdown */}
             <div className="relative group/lang select-none z-50">
               <button
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D3D9E4] hover:border-[#1B3FA0] text-xs font-bold text-[#1B3FA0] bg-[#E9EDF3]/50 hover:bg-[#1B3FA0]/5 transition-all cursor-pointer shadow-sm"
@@ -420,7 +406,6 @@ export default function App() {
             </div>
           </nav>
 
-          {/* Quick CTA */}
           <div className="hidden xl:flex items-center gap-3">
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-2xs font-extrabold tracking-widest border uppercase transition-colors ${
               isOpenNow 
@@ -438,7 +423,6 @@ export default function App() {
             </a>
           </div>
 
-          {/* Mobile Menu Button */}
           <button 
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -448,7 +432,6 @@ export default function App() {
           </button>
         </div>
 
-        {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="xl:hidden absolute top-20 left-0 w-full bg-white/95 backdrop-blur-xl border-b border-[#D3D9E4] p-6 flex flex-col gap-5 animate-fade-in shadow-md shadow-[#EFEAE2]">
             <button
@@ -542,11 +525,15 @@ export default function App() {
       </header>
       )}
 
-      {activeView === 'bookings' || activeView === 'track-order' || activeView === 'admin' ? (
+      {activeView === 'bookings' || activeView === 'track-order' ? (
         <MyBookings 
-          initialAdminMode={activeView === 'admin'} 
-          onlyShowType={activeView === 'bookings' ? 'appointments' : activeView === 'track-order' ? 'orders' : null}
+          initialAdminMode={false} 
+          onlyShowType={activeView === 'bookings' ? 'appointments' : 'orders'}
           onBackToHome={() => { setActiveView('main'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+        />
+      ) : activeView === 'admin' ? (
+        <AdminDashboard 
+          onLogout={() => { setActiveView('main'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
         />
       ) : (
         <>
@@ -557,13 +544,11 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-        {/* Subtle warm decorative blurs */}
         <div className="absolute top-1/4 right-0 w-96 h-96 rounded-full bg-[#1B3FA0]/5 blur-[120px] pointer-events-none"></div>
         <div className="absolute top-1/3 left-10 w-80 h-80 rounded-full bg-[#2A55C7]/5 blur-[100px] pointer-events-none"></div>
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="max-w-4xl">
-            {/* Tagline Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold tracking-wide mb-6">
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
@@ -572,7 +557,6 @@ export default function App() {
               {t('hero.badge')}
             </div>
 
-            {/* Main Header */}
             <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-[#0E1626] tracking-tight leading-[1.08] mb-8">
               {language === 'en' ? (
                 <>
@@ -587,12 +571,10 @@ export default function App() {
               )}
             </h1>
 
-            {/* About Us Copy */}
             <p className="text-base sm:text-lg md:text-xl text-[#566074] leading-relaxed max-w-3xl mb-12">
               {t('hero.subtitle')}
             </p>
 
-            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 max-w-xl md:max-w-none">
               <a 
                 href="#book-slot" 
@@ -624,7 +606,6 @@ export default function App() {
         </div>
       </motion.section>
 
-      {/* CREDIBILITY ROW */}
       {/* ABOUT US SECTION */}
       <motion.section 
         id="about" 
@@ -654,7 +635,6 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             
-            {/* Metric Column 1 */}
             <div className="flex gap-4.5">
               <div className="w-12 h-12 rounded-xl bg-white border border-[#D3D9E4] flex items-center justify-center text-[#1B3FA0] shrink-0 shadow-sm">
                 <ShieldCheck className="w-6 h-6" />
@@ -667,7 +647,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Metric Column 2 */}
             <div className="flex gap-4.5">
               <div className="w-12 h-12 rounded-xl bg-white border border-[#D3D9E4] flex items-center justify-center text-[#2A55C7] shrink-0 shadow-sm">
                 <Users className="w-6 h-6" />
@@ -680,7 +659,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Metric Column 3 */}
             <div className="flex gap-4.5">
               <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 shadow-sm">
                 <Star className="w-6 h-6" />
@@ -697,7 +675,7 @@ export default function App() {
         </div>
       </motion.section>
 
-      {/* 3.5 MEET THE OWNER / FOUNDER SECTION */}
+      {/* MEET THE OWNER SECTION */}
       <motion.section 
         id="meet-owner" 
         className="py-24 bg-white border-b border-[#D3D9E4] relative z-10 overflow-hidden scroll-mt-20"
@@ -706,37 +684,29 @@ export default function App() {
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8 }}
       >
-        {/* Decorative backdrop graphics */}
         <div className="absolute top-1/2 left-0 w-96 h-96 rounded-full bg-[#1B3FA0]/5 blur-[120px] pointer-events-none -translate-y-1/2"></div>
         <div className="absolute top-1/4 right-0 w-80 h-80 rounded-full bg-amber-500/5 blur-[100px] pointer-events-none"></div>
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             
-            {/* Left Column: Framed Portrait */}
             <div className="lg:col-span-5 flex justify-center lg:justify-start">
               <div className="relative group max-w-sm w-full">
                 
-                {/* Glowing Aura Backdrop */}
                 <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-600/10 via-amber-500/5 to-teal-600/10 rounded-3xl blur-2xl opacity-75 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
-                {/* Gold/Emerald Border Frame */}
                 <div className="relative rounded-2xl overflow-hidden border border-[#D3D9E4] bg-gradient-to-b from-[#F2F4F7] to-[#F5EFE6] p-4.5 shadow-xl shadow-[#EFEAE2] transition-transform duration-500 group-hover:scale-[1.02]">
                   
-                  {/* Glassmorphic overlay ring */}
                   <div className="absolute inset-0 border-2 border-white/50 rounded-xl pointer-events-none z-10"></div>
                   
-                  {/* Photo Container */}
                   <div className="aspect-square w-full rounded-xl overflow-hidden bg-white/40 border border-[#D3D9E4]/60 relative flex items-end justify-center">
                     
-                    {/* Portrait Image */}
                     <img 
                       src="/owner.png" 
                       alt="Mr. Rahul Kumar - Owner & Proprietor" 
                       className="w-full h-full object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)] transition-transform duration-500 group-hover:scale-105"
                     />
                     
-                    {/* Overlay badge */}
                     <div className="absolute bottom-4 left-4 right-4 bg-white/80 backdrop-blur-md border border-[#D3D9E4] rounded-xl p-3 shadow-md text-center z-20">
                       <span className="block text-2xs font-extrabold uppercase tracking-widest text-[#1B3FA0]">{t('meetOwner.subtitle')}</span>
                       <span className="block text-xs font-bold text-slate-800 mt-0.5">{t('meetOwner.title')}</span>
@@ -745,7 +715,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Decorative floating details */}
                 <div className="absolute -top-3 -right-3 w-12 h-12 rounded-xl bg-white border border-[#D3D9E4] shadow-md flex items-center justify-center text-[#1B3FA0] z-20 transition-transform duration-500 group-hover:rotate-12">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
@@ -758,10 +727,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right Column: Bio Narrative & Philosophy */}
             <div className="lg:col-span-7 space-y-8">
               
-              {/* Badges & Main Title */}
               <div className="space-y-4">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
                   {t('meetOwner.badge')}
@@ -779,7 +746,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Bio Narrative Text */}
               <div className="space-y-4 text-slate-600 text-sm sm:text-base leading-relaxed">
                 <p>
                   {t('meetOwner.p1')}
@@ -789,7 +755,6 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Legacy Highlight Banner */}
               <div className="bg-[#E9EDF3]/80 border border-[#D3D9E4]/60 rounded-2xl p-6 shadow-sm hover:border-[#1B3FA0]/30 transition-colors flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-[#1B3FA0]/10 flex items-center justify-center text-[#1B3FA0] shrink-0 font-extrabold text-sm">
                   
@@ -800,13 +765,11 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Quote Block & Signature */}
               <div className="border-t border-[#D3D9E4]/80 pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                 <blockquote className="text-xs font-semibold italic text-[#1B3FA0] leading-relaxed max-w-md">
                   {t('meetOwner.quote')}
                 </blockquote>
                 
-                {/* Handwritten Style Signature */}
                 <div className="shrink-0 flex flex-col items-end">
                   <img src="/signature.png" alt="Rahul Kumar's signature" className="h-14 sm:h-16 w-auto object-contain -mt-2 -rotate-2 transition-transform duration-300 hover:rotate-0" />
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t('meetOwner.title')}</span>
@@ -819,7 +782,7 @@ export default function App() {
         </div>
       </motion.section>
 
-      {/* CLINIC APPOINTMENT PORTAL (B2C MODULE) */}
+      {/* CLINIC APPOINTMENT PORTAL */}
       <motion.section 
         id="book-slot" 
         className="py-24 bg-[#F2F4F7]/90 relative z-10 scroll-mt-20"
@@ -842,15 +805,12 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
-            {/* Left Column: Doctor Profile Card */}
             <div className="lg:col-span-4 h-full">
               <div className="relative group rounded-3xl overflow-hidden border border-[#D3D9E4] bg-white p-6 shadow-lg shadow-[#EFEAE2]/50 transition-all duration-300 hover:shadow-xl flex flex-col justify-between h-full">
-                {/* Decorative glowing gradient ring */}
                 <div className="absolute inset-0 border-2 border-white/50 rounded-3xl pointer-events-none z-10"></div>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none -mr-16 -mt-16"></div>
                 
                 <div className="space-y-6">
-                  {/* Doctor Photo centered in circle */}
                   <div className="flex flex-col items-center">
                     <div className="relative w-48 h-48 rounded-full p-1.5 bg-gradient-to-tr from-[#1B3FA0] via-emerald-250 to-amber-500 shadow-md">
                       <div className="w-full h-full rounded-full overflow-hidden bg-slate-900 border border-white/20 relative">
@@ -861,7 +821,6 @@ export default function App() {
                         />
                       </div>
                       
-                      {/* Pulsing dot */}
                       <span className="absolute bottom-2 right-4 flex h-4.5 w-4.5 z-20">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-4.5 w-4.5 bg-emerald-500 border-2 border-white"></span>
@@ -869,7 +828,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Doctor Details */}
                   <div className="text-center space-y-2.5">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1B3FA0]/5 border border-[#1B3FA0]/10 text-[#1B3FA0] text-[10px] font-black uppercase tracking-wider">
                       <span>{language === 'en' ? 'Senior OPD Physician' : 'वरिष्ठ ओपीडी चिकित्सक'}</span>
@@ -887,7 +845,6 @@ export default function App() {
                   
                   <div className="h-[1px] bg-gradient-to-r from-transparent via-[#D3D9E4] to-transparent my-1"></div>
 
-                  {/* Doctor Info Rows */}
                   <div className="space-y-3.5 text-xs">
                     <div className="flex items-start gap-3 text-slate-650 leading-relaxed font-medium">
                       <span className="w-5 h-5 rounded-lg bg-teal-50 border border-teal-200/50 flex items-center justify-center shrink-0 font-bold text-teal-600 text-xs"></span>
@@ -910,7 +867,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Bottom Quote / Assurance */}
                 <div className="mt-6 pt-5 border-t border-[#D3D9E4]/60 text-center">
                   <p className="text-3xs italic font-black text-slate-400 leading-normal uppercase tracking-wider">
                     {language === 'en' ? '"Dedicated to safe, gentle, and wellness for every family."' : '"प्रत्येक परिवार के लिए सुरक्षित, सौम्य और समग्र कल्याण के लिए समर्पित।"'}
@@ -919,13 +875,11 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right Column: Appointment Scheduler */}
             <div className="lg:col-span-8 relative">
               <BookingCalendar />
             </div>
           </div>
 
-          {/* CLINIC PRO-TIP PORTAL INDICATOR */}
           <div className="mt-8 max-w-4xl mx-auto bg-gradient-to-r from-emerald-50/80 to-teal-50/80 border border-emerald-200/60 rounded-2xl p-5 shadow-sm backdrop-blur-md flex flex-col sm:flex-row items-start gap-4 transition-all duration-300 hover:shadow-md">
             <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shrink-0 shadow-sm animate-pulse">
               <span className="text-xl"></span>
@@ -968,7 +922,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* 4.5 RETAIL BUY PORTAL (B2C REMEDIES) */}
+      {/* RETAIL BUY PORTAL */}
       <motion.section 
         id="retail-buy" 
         className="py-24 bg-white/90 relative z-10 scroll-mt-20"
@@ -1037,7 +991,6 @@ export default function App() {
             </p>
           </div>
 
-          {/* B2B wide layout form component */}
           <BulkForm />
 
         </div>
@@ -1071,10 +1024,8 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
             
-            {/* Left: Contact Info, Badge and Hours */}
             <div className="lg:col-span-5 flex flex-col justify-between space-y-8">
               
-              {/* Badge & Title */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-2xs font-extrabold tracking-widest border uppercase transition-all ${
@@ -1098,7 +1049,6 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Hours Table */}
               <div className="bg-white border border-[#D3D9E4] rounded-2xl p-5 space-y-4 shadow-md shadow-[#EFEAE2]">
                 <h3 className="font-semibold text-[#0E1626] text-sm uppercase tracking-widest border-b border-[#D3D9E4] pb-3 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-[#1B3FA0]" />
@@ -1120,7 +1070,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Contact Metric Indicators */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-white border border-[#D3D9E4] rounded-2xl space-y-2 shadow-md shadow-[#EFEAE2]">
                   <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-[#1B3FA0]">
@@ -1141,10 +1090,8 @@ export default function App() {
 
             </div>
 
-            {/* Right: Embedded Map & Physical Address */}
             <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
               
-              {/* Google Maps Embed */}
               <div className="bg-white border border-[#D3D9E4] rounded-2xl overflow-hidden shadow-md shadow-[#EFEAE2] flex-1 min-h-[340px] relative">
                 <iframe
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3664.2693892782806!2d85.31629917604546!3d23.37631500318536!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39f4e11b8c4bc5f5%3A0x6bf748515c6e9208!2sKANCHAN%20HOMOEO%20HALL!5e0!3m2!1sen!2sin!4v1716200000000!5m2!1sen!2sin"
@@ -1158,7 +1105,6 @@ export default function App() {
                 ></iframe>
               </div>
 
-              {/* Physical Address Footer */}
               <div className="flex gap-4 items-center bg-white p-4 border border-[#D3D9E4] rounded-xl shadow-md shadow-[#EFEAE2]">
                 <div className="w-10 h-10 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-[#2A55C7] shrink-0">
                   <Building className="w-5 h-5" />
@@ -1178,7 +1124,7 @@ export default function App() {
         </>
       )}
 
-      {/* FREQUENTLY ASKED QUESTIONS (GLOBAL) */}
+      {/* FREQUENTLY ASKED QUESTIONS */}
       <motion.section 
         id="faq" 
         className="py-24 bg-white/90 relative z-10 border-t border-[#D3D9E4]"
@@ -1246,7 +1192,6 @@ export default function App() {
         </div>
       </motion.section>
 
-
       {/* FOOTER */}
       <footer className="bg-white/90 border-t border-[#D3D9E4] py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-2xs text-[#566074] font-medium">
@@ -1256,7 +1201,9 @@ export default function App() {
             <span>{t('footer.rights', { year: new Date().getFullYear() })}</span>
           </div>
 
-          <div className="flex items-center gap-6">\1<InstallButton />\1<a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="hover:text-[#0E1626] transition-colors">{t('footer.contact')}</a>
+          <div className="flex items-center gap-6">
+            <InstallButton />
+            <a href="#contact" onClick={(e) => smoothScroll(e, 'contact')} className="hover:text-[#0E1626] transition-colors">{t('footer.contact')}</a>
           </div>
 
         </div>
