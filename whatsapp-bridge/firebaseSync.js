@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import fs from 'fs';
 import path from 'path';
 
@@ -44,12 +44,11 @@ export async function downloadSessionFromFirebase() {
     }
 
     const data = docSnap.data();
-    if (!data || !data.files) {
-      console.log('ℹ️ Session document exists but contains no files.');
+    if (!data || !data.files || !data.files['creds.json']) {
+      console.log('ℹ️ Session document exists but has no valid creds.json.');
       return false;
     }
 
-    // Ensure local auth folder exists
     if (!fs.existsSync(AUTH_DIR)) {
       fs.mkdirSync(AUTH_DIR, { recursive: true });
     }
@@ -61,7 +60,7 @@ export async function downloadSessionFromFirebase() {
       count++;
     }
 
-    console.log(`✅ Successfully restored WhatsApp session from cloud database (${count} files synced!).`);
+    console.log(`✅ Successfully restored WhatsApp session from cloud database (${count} essential files synced!).`);
     return true;
   } catch (error) {
     console.error('❌ Failed to restore session from Firebase:', error);
@@ -69,7 +68,27 @@ export async function downloadSessionFromFirebase() {
   }
 }
 
-// Simple debounce to prevent hitting Firestore write limits (only write at most once every 10 seconds)
+// Automatically wipe corrupted/logged-out session from local disk AND Firestore
+export async function clearSessionFromFirebase() {
+  try {
+    if (uploadTimeout) clearTimeout(uploadTimeout);
+
+    if (fs.existsSync(AUTH_DIR)) {
+      fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+      console.log('🧹 Wiped local auth_session folder.');
+    }
+
+    const firestore = getDb();
+    if (!firestore) return;
+
+    const sessionDocRef = doc(firestore, 'whatsapp_session', 'active_session');
+    await deleteDoc(sessionDocRef);
+    console.log('🧹 Purged invalidated WhatsApp session from Firebase Firestore.');
+  } catch (error) {
+    console.error('❌ Failed to clear session from Firebase:', error);
+  }
+}
+
 let isUploading = false;
 let uploadTimeout = null;
 
@@ -78,7 +97,6 @@ export function uploadSessionToFirebaseDebounced() {
   
   uploadTimeout = setTimeout(async () => {
     if (isUploading) {
-      // Re-queue if already in progress
       uploadSessionToFirebaseDebounced();
       return;
     }
@@ -91,7 +109,7 @@ export function uploadSessionToFirebaseDebounced() {
     } finally {
       isUploading = false;
     }
-  }, 10000); // 10 second debounce
+  }, 10000);
 }
 
 export async function uploadSessionToFirebase() {
@@ -99,28 +117,37 @@ export async function uploadSessionToFirebase() {
     const firestore = getDb();
     if (!firestore) return;
 
-    if (!fs.existsSync(AUTH_DIR)) {
-      console.log('⚠️ auth_session directory does not exist. Nothing to upload.');
-      return;
-    }
+    if (!fs.existsSync(AUTH_DIR)) return;
 
     const files = fs.readdirSync(AUTH_DIR);
-    if (files.length === 0) {
-      console.log('ℹ️ auth_session directory is empty. Skipping upload.');
-      return;
-    }
-
-    console.log(`🔄 Packaging WhatsApp session (${files.length} files) for secure cloud backup...`);
+    if (files.length === 0) return;
 
     const packedFiles = {};
+    let totalBytes = 0;
+
+    // Prioritize creds.json first so it is ALWAYS saved
+    if (files.includes('creds.json')) {
+      const credsContent = fs.readFileSync(path.join(AUTH_DIR, 'creds.json'), 'utf-8');
+      packedFiles['creds.json'] = credsContent;
+      totalBytes += Buffer.byteLength(credsContent, 'utf-8');
+    }
+
+    // Filter out bloated app-state-sync files that blow up Firestore's 1MB limit
     for (const filename of files) {
+      if (filename === 'creds.json') continue;
+      if (filename.startsWith('app-state-sync')) continue;
+
       const filePath = path.join(AUTH_DIR, filename);
       const stat = fs.statSync(filePath);
       
-      // Only process files (skip folders, if any)
       if (stat.isFile()) {
         const content = fs.readFileSync(filePath, 'utf-8');
-        packedFiles[filename] = content;
+        const size = Buffer.byteLength(content, 'utf-8');
+        // Keep strictly under 800KB so Firestore 1MB limit NEVER rejects the save
+        if (totalBytes + size < 800000) {
+          packedFiles[filename] = content;
+          totalBytes += size;
+        }
       }
     }
 
@@ -130,7 +157,7 @@ export async function uploadSessionToFirebase() {
       updatedAt: new Date().toISOString()
     });
 
-    console.log('☁️ WhatsApp session successfully backed up to Firebase Firestore!');
+    console.log(`☁️ Backed up ${Object.keys(packedFiles).length} essential session files (${Math.round(totalBytes / 1024)} KB) to Firestore!`);
   } catch (error) {
     console.error('❌ Failed to back up session to Firebase:', error);
   }
